@@ -1,4 +1,4 @@
-import type { EntityId, ISODateTime } from '../shared/types';
+import type { EntityId, ISODateTime } from '../../shared/types';
 
 export type TaskStatus = 'to-do' | 'in-progress' | 'done' | 'blocked';
 export type TaskPriority = 'low' | 'medium' | 'high';

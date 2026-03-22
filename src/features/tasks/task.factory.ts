@@ -1,11 +1,13 @@
 import type { Task, CreateTaskInput } from './task.types';
-import { nowIso , generateId, assertNonEmpty } from '../shared/utils';
+import { nowIso , generateId, assertNonEmpty, assertValidDate } from '../../shared/utils';
 
 export function createTask(input: CreateTaskInput): Task {
     const now = nowIso();
 
     assertNonEmpty(input.title, 'Title');
-
+    if (input.dueDate) {
+        assertValidDate(input.dueDate, 'Due Date');
+    }
 
     return {
         id: generateId(),

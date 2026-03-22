@@ -1,8 +1,12 @@
 import type { Event, CreateEventInput } from './event.types';
-import { nowIso , generateId } from '../shared/utils';
+import { nowIso , generateId, assertNonEmpty, assertValidDate } from '../../shared/utils';
 
 export function createEvent(input: CreateEventInput): Event {
     const now = nowIso();
+
+    assertNonEmpty(input.title, 'Title');
+    assertValidDate(input.startsAt, 'Start Date');
+    assertValidDate(input.endsAt, 'End Date');
 
     return {
         id: generateId(),

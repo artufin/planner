@@ -1,4 +1,4 @@
-import type { EntityId, ISODateTime } from '../shared/types';
+import type { EntityId, ISODateTime } from '../../shared/types';
 
 export type EventKind = 'meeting' | 'appointment' | 'reminder';
 
