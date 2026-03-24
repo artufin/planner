@@ -1,4 +1,4 @@
-import type { Task, CreateTaskInput } from './task.types';
+import type { Task, CreateTaskInput } from './types';
 import { nowIso , generateId, assertNonEmpty, assertValidDate } from '../../shared/utils';
 
 export function createTask(input: CreateTaskInput): Task {

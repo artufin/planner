@@ -1,4 +1,4 @@
-import { Event } from './event.types';
+import { Event } from './types';
 
 export function transformEventToCalendarEvent(event: Event) {
     return {
