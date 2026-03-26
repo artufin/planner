@@ -1,4 +1,5 @@
-import type { Event, CreateEventInput } from './types';
+import type { Event} from './types';
+import type { CreateEventInput } from './schema';
 import { nowIso , generateId, assertNonEmpty, assertValidDate } from '../../shared/utils';
 
 export function createEvent(input: CreateEventInput): Event {

@@ -15,14 +15,3 @@ export interface Event {
     createdAt: ISODateTime;
     updatedAt: ISODateTime;
 }
-
-export interface CreateEventInput {
-    title: string;
-    startsAt: ISODateTime;
-    endsAt: ISODateTime;
-    allDay: boolean;
-    description?: string;
-    kind: EventKind;
-    recurrenceRule?: string;
-    linkedTasksIds?: EntityId[];
-}
