@@ -30,7 +30,8 @@ export default function EventModal() {
         if (editingEvent) {
             return {
                 title: editingEvent.title,
-                categoryId: editingEvent.categoryId,
+                categoryId: editingEvent.categoryId ?? '',
+                location: editingEvent.location ?? '',
                 startDate: editingEvent.startDate,
                 hasStartTime: editingEvent.start !== null,
                 startTime: editingEvent.start ?? '09:00',
@@ -39,11 +40,11 @@ export default function EventModal() {
                 createTask: false,
             };
         }
-        const categoryId = eventModal.presetCategoryId ?? categories[0]?.id ?? '';
         return {
             title: '',
-            categoryId,
-            startDate: '',
+            categoryId: eventModal.presetCategoryId ?? '',
+            location: '',
+            startDate: eventModal.presetDate ?? '',
             hasStartTime: false,
             startTime: '09:00',
             hasEndTime: false,
@@ -60,6 +61,7 @@ export default function EventModal() {
 
     const hasStartTime = watch('hasStartTime');
     const hasEndTime = watch('hasEndTime');
+    const categoryId = watch('categoryId');
     /** Mirrors utils.isDeadlineEvent: an end time with no start time reads as a due time rather than a scheduled block. */
     const isDeadlineEvent = !hasStartTime && hasEndTime;
 
@@ -71,8 +73,9 @@ export default function EventModal() {
         const end = overnight ? new Date(y, m, d + 1) : new Date(y, m, d);
         const title = values.title.trim();
         const payload = {
-            categoryId: values.categoryId,
+            categoryId: values.categoryId || null,
             title,
+            location: values.location.trim() || null,
             startDate: values.startDate,
             endDate: dateToInput(end.getFullYear(), end.getMonth(), end.getDate()),
             start: values.hasStartTime ? values.startTime : null,
@@ -89,7 +92,7 @@ export default function EventModal() {
         createEvent.mutate(payload, {
             onSuccess: (created) => {
                 closeEventModal();
-                if (isDeadlineEventFlag && values.createTask) {
+                if (isDeadlineEventFlag && values.createTask && values.categoryId) {
                     createTask.mutate(
                         {
                             categoryId: values.categoryId,
@@ -121,12 +124,17 @@ export default function EventModal() {
                     <input {...register('title')} placeholder="ej. Entrega de informe" style={inputStyle} />
                 </div>
                 <div>
-                    <div style={labelStyle}>Categoría</div>
+                    <div style={labelStyle}>Categoría (opcional)</div>
                     <select {...register('categoryId')} style={inputStyle}>
+                        <option value="">Sin categoría</option>
                         {categories.map((c) => (
                             <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                     </select>
+                </div>
+                <div>
+                    <div style={labelStyle}>Ubicación (opcional)</div>
+                    <input {...register('location')} placeholder="ej. Sala 204" style={inputStyle} />
                 </div>
                 <div>
                     <div style={labelStyle}>Fecha</div>
@@ -152,7 +160,7 @@ export default function EventModal() {
                         <Controller name="endTime" control={control} render={({ field }) => <TimeInput value={field.value} onChange={field.onChange} style={inputStyle} />} />
                     </div>
                 )}
-                {isDeadlineEvent && !editingEvent && (
+                {isDeadlineEvent && !editingEvent && categoryId && (
                     <label style={checkboxLabelStyle}>
                         <input type="checkbox" {...register('createTask')} />
                         Crear tarea

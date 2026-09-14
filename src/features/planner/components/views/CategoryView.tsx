@@ -53,7 +53,7 @@ export default function CategoryView() {
                     const dateLabel =
                         `${d} de ${MONTH_NAMES[m]}` +
                         (hasStart && hasEnd ? ` · ${e.start}–${e.end}` : hasStart ? ` · ${e.start}` : hasEnd ? ` · hasta ${e.end}` : '');
-                    return { ...e, dateLabel };
+                    return { ...e, dateLabel: e.location ? `${dateLabel} · ${e.location}` : dateLabel };
                 }),
         [events, selectedCategoryId],
     );

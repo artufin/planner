@@ -2,7 +2,9 @@ import { z } from 'zod';
 
 export const eventFormSchema = z.object({
     title: z.string().min(1, 'El título es requerido'),
-    categoryId: z.string().min(1, 'La categoría es requerida'),
+    /** Blank = sin categoría; events may live outside any category. */
+    categoryId: z.string(),
+    location: z.string(),
     startDate: z.string().min(1, 'La fecha es requerida'),
     hasStartTime: z.boolean(),
     startTime: z.string(),

@@ -7,16 +7,17 @@ export function scheduleTitleFor(s: Pick<ScheduleItem, 'title'>, category: Categ
     return s.title.trim() || category.name;
 }
 
-export function solidColor(hue: number): string {
-    return `oklch(56% 0.16 ${hue})`;
+/** A null hue means "sin categoría" — rendered in neutral gray instead of a category color. */
+export function solidColor(hue: number | null): string {
+    return hue === null ? 'oklch(62% 0.012 95)' : `oklch(56% 0.16 ${hue})`;
 }
 
-export function softColor(hue: number): string {
-    return `oklch(93% 0.035 ${hue})`;
+export function softColor(hue: number | null): string {
+    return hue === null ? 'oklch(94% 0.004 95)' : `oklch(93% 0.035 ${hue})`;
 }
 
-export function softTextColor(hue: number): string {
-    return `oklch(38% 0.1 ${hue})`;
+export function softTextColor(hue: number | null): string {
+    return hue === null ? 'oklch(40% 0.01 95)' : `oklch(38% 0.1 ${hue})`;
 }
 
 export function sameDate(a: Date, b: Date): boolean {
@@ -144,8 +145,13 @@ export function recurringForRange(
     return out;
 }
 
+/** An event is shown when it has no category at all, or when its category still exists. */
+export function eventIsVisible(ev: PlannerEvent, categories: Category[]): boolean {
+    return ev.categoryId === null || !!categoryById(categories, ev.categoryId);
+}
+
 export function eventsForDate(events: PlannerEvent[], categories: Category[], dateIso: string): PlannerEvent[] {
-    return events.filter((e) => eventCoversDate(e, dateIso) && categoryById(categories, e.categoryId));
+    return events.filter((e) => eventCoversDate(e, dateIso) && eventIsVisible(e, categories));
 }
 
 export function tasksForDate(tasks: PlannerTask[], categories: Category[], dateIso: string): PlannerTask[] {

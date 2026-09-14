@@ -7,7 +7,7 @@ interface ModalState {
     presetCategoryId: string | null;
     /** Schedule modal only: when set, editingId is treated as a single occurrence's date rather than the whole series. */
     occurrenceDate?: string | null;
-    /** Task modal only: prefills the date field for a new task (e.g. from the planning board's per-day "+"). */
+    /** Task and event modals: prefills the date field for a new entry (e.g. the planning board's per-day "+", or a double-click on a calendar day). */
     presetDate?: string | null;
 }
 
@@ -51,7 +51,7 @@ interface PlannerState {
     openScheduleModalOccurrence: (scheduleId: string, date: string) => void;
     closeScheduleModal: () => void;
 
-    openEventModalNew: (presetCategoryId?: string | null) => void;
+    openEventModalNew: (presetCategoryId?: string | null, presetDate?: string | null) => void;
     openEventModalEdit: (id: string) => void;
     closeEventModal: () => void;
 
@@ -107,7 +107,8 @@ export const usePlannerStore = create<PlannerState>()((set) => ({
         set({ scheduleModal: { open: true, editingId: scheduleId, presetCategoryId: null, occurrenceDate: date } }),
     closeScheduleModal: () => set({ scheduleModal: CLOSED_MODAL }),
 
-    openEventModalNew: (presetCategoryId = null) => set({ eventModal: { open: true, editingId: null, presetCategoryId } }),
+    openEventModalNew: (presetCategoryId = null, presetDate = null) =>
+        set({ eventModal: { open: true, editingId: null, presetCategoryId, presetDate } }),
     openEventModalEdit: (id) => set({ eventModal: { open: true, editingId: id, presetCategoryId: null } }),
     closeEventModal: () => set({ eventModal: CLOSED_MODAL }),
 

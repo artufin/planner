@@ -36,8 +36,9 @@ export interface ScheduleException {
 
 export interface PlannerEvent {
     id: string;
-    categoryId: string;
+    categoryId: string | null; // null = sin categoría
     title: string;
+    location: string | null;
     startDate: string; // YYYY-MM-DD
     endDate: string; // YYYY-MM-DD inclusive
     start: string | null; // HH:MM, null = no start time

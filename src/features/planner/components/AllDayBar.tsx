@@ -6,7 +6,10 @@ import { solidColor } from '../utils';
 export interface AllDayBarSegment {
     id: string;
     title: string;
-    hue: number;
+    /** Null when the event has no category — the bar is drawn neutral gray. */
+    hue: number | null;
+    /** Optional second tooltip line, e.g. the event's category. */
+    subtitle?: string | null;
     roundLeft: boolean;
     roundRight: boolean;
 }
@@ -56,6 +59,7 @@ export function AllDayBar({
                     }}
                 >
                     {bar.title}
+                    {bar.subtitle && <div style={{ opacity: 0.7, fontWeight: 500 }}>{bar.subtitle}</div>}
                 </div>
             )}
         </div>

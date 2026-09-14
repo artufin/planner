@@ -59,9 +59,11 @@ export default function TaskModal() {
 
     const categoryId = watch('categoryId');
     const date = watch('date');
+    const eventId = watch('eventId');
     const hasTime = watch('hasTime');
     const hasDeadline = watch('hasDeadline');
     const skipNextCategoryReset = useRef(true);
+    const lastSyncedEventId = useRef(defaultValues.eventId);
 
     useEffect(() => {
         if (skipNextCategoryReset.current) {
@@ -71,7 +73,18 @@ export default function TaskModal() {
         setValue('eventId', '');
     }, [categoryId, setValue]);
 
-    const taskEventLinkOptions = events.filter((e) => e.categoryId === categoryId);
+    /** Linking a task to an event adopts the event's date as the task's deadline — only when the link actually changes, so a hand-edited deadline survives refetches. */
+    useEffect(() => {
+        if (eventId === lastSyncedEventId.current) return;
+        lastSyncedEventId.current = eventId;
+        const linked = eventId ? events.find((e) => e.id === eventId) : undefined;
+        if (!linked) return;
+        setValue('hasDeadline', true);
+        setValue('deadline', linked.startDate);
+    }, [eventId, events, setValue]);
+
+    /** Uncategorized events can be linked from any category. */
+    const taskEventLinkOptions = events.filter((e) => e.categoryId === categoryId || e.categoryId === null);
 
     const onSubmit = (values: TaskFormValues) => {
         const onError = (e: unknown) => window.alert(apiErrorMessage(e));

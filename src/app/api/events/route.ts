@@ -14,8 +14,9 @@ export async function GET() {
 }
 
 const createEventSchema = z.object({
-    categoryId: z.string().min(1),
+    categoryId: z.string().min(1).nullable().default(null),
     title: z.string().min(1, 'El título es requerido'),
+    location: z.string().nullable().default(null),
     startDate: dateOnly,
     endDate: dateOnly,
     start: timeOnly.nullable().default(null),
@@ -31,6 +32,7 @@ export async function POST(req: Request) {
             data: {
                 categoryId: v.categoryId,
                 title: v.title,
+                location: v.location,
                 startDate: fromDateOnly(v.startDate),
                 endDate: fromDateOnly(v.endDate),
                 start: fromTimeOnlyNullable(v.start),

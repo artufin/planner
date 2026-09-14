@@ -9,8 +9,9 @@ import { dateOnly, timeOnly } from '@/lib/api/validators';
 export const dynamic = 'force-dynamic';
 
 const updateEventSchema = z.object({
-    categoryId: z.string().min(1).optional(),
+    categoryId: z.string().min(1).nullable().optional(),
     title: z.string().min(1).optional(),
+    location: z.string().nullable().optional(),
     startDate: dateOnly.optional(),
     endDate: dateOnly.optional(),
     start: timeOnly.nullable().optional(),
@@ -28,6 +29,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             data: {
                 categoryId: v.categoryId,
                 title: v.title,
+                location: v.location,
                 startDate: v.startDate !== undefined ? fromDateOnly(v.startDate) : undefined,
                 endDate: v.endDate !== undefined ? fromDateOnly(v.endDate) : undefined,
                 start: v.start !== undefined ? fromTimeOnlyNullable(v.start) : undefined,

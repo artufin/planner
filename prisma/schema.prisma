@@ -57,9 +57,10 @@ model ScheduleException {
 
 model PlannerEvent {
   id         String    @id @default(uuid())
-  categoryId String
-  category   Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   title      String
+  location   String?
   startDate  DateTime  @db.Date
   endDate    DateTime  @db.Date
   start      DateTime? @db.Time

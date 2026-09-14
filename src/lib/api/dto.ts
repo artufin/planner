@@ -49,6 +49,7 @@ export function plannerEventDto(e: PrismaPlannerEvent): PlannerEvent {
         id: e.id,
         categoryId: e.categoryId,
         title: e.title,
+        location: e.location,
         startDate: toDateOnly(e.startDate),
         endDate: toDateOnly(e.endDate),
         start: toTimeOnlyNullable(e.start),

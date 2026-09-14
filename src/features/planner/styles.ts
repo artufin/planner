@@ -18,6 +18,8 @@ export const colors = {
     chipBg: 'oklch(95% 0.004 95)',
     fieldText: 'oklch(25% 0.01 95)',
     controlBg: 'oklch(94% 0.004 95)',
+    nowLine: 'oklch(58% 0.19 25)',
+    tooltipBg: 'oklch(20% 0.01 95)',
 } as const;
 
 export const inputStyle: CSSProperties = {

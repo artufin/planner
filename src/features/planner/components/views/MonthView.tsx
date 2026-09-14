@@ -6,11 +6,12 @@ import { useCategories } from '@/lib/api/categories';
 import { useEvents } from '@/lib/api/events';
 import { AllDayBar } from '../AllDayBar';
 import { colors } from '../../styles';
-import { WEEKDAY_LABELS } from '../../constants';
+import { NO_CATEGORY_LABEL, WEEKDAY_LABELS } from '../../constants';
 import {
     appliesAsSingleDayEvent,
     categoryById,
     dateToInput,
+    eventIsVisible,
     eventsForDate,
     getMonthAnchor,
     isMultiDay,
@@ -27,11 +28,12 @@ import type { Category, PlannerEvent } from '@/lib/api/types';
 interface CellItem {
     id: string;
     label: string;
-    hue: number;
+    hue: number | null;
 }
 
 interface Cell {
     dayNum: number;
+    dateIso: string;
     inMonth: boolean;
     isToday: boolean;
     items: CellItem[];
@@ -43,7 +45,8 @@ interface Cell {
 interface Bar {
     id: string;
     title: string;
-    hue: number;
+    subtitle: string;
+    hue: number | null;
     startCol: number;
     endCol: number;
     roundLeft: boolean;
@@ -81,12 +84,14 @@ function buildMonthWeeks(categories: Category[], events: PlannerEvent[], today: 
             const dayEvents = eventsForDate(events, categories, dateIso)
                 .filter((ev) => appliesAsSingleDayEvent(ev, dateIso))
                 .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
-            const items = dayEvents.slice(0, 2).map((ev) => {
-                const c = categoryById(categories, ev.categoryId)!;
-                return { id: ev.id, label: ev.title, hue: c.hue };
-            });
+            const items = dayEvents.slice(0, 2).map((ev) => ({
+                id: ev.id,
+                label: ev.title,
+                hue: categoryById(categories, ev.categoryId)?.hue ?? null,
+            }));
             cells.push({
                 dayNum: dt.getDate(),
+                dateIso,
                 inMonth,
                 isToday,
                 items,
@@ -100,7 +105,7 @@ function buildMonthWeeks(categories: Category[], events: PlannerEvent[], today: 
             (ev) =>
                 isMultiDay(ev) &&
                 !isOvernightEvent(ev) &&
-                categoryById(categories, ev.categoryId) &&
+                eventIsVisible(ev, categories) &&
                 isoDval(ev.startDate) <= rowEnd.getTime() &&
                 isoDval(ev.endDate) >= rowStart.getTime(),
         );
@@ -110,13 +115,14 @@ function buildMonthWeeks(categories: Category[], events: PlannerEvent[], today: 
         });
 
         const bars: Bar[] = multiEventsThisRow.map((ev, bi) => {
-            const c = categoryById(categories, ev.categoryId)!;
+            const c = categoryById(categories, ev.categoryId);
             const startCol = Math.max(0, Math.round((isoDval(ev.startDate) - rowStart.getTime()) / 86400000));
             const endCol = Math.min(6, Math.round((isoDval(ev.endDate) - rowStart.getTime()) / 86400000));
             return {
                 id: ev.id,
                 title: ev.title,
-                hue: c.hue,
+                subtitle: [c?.name ?? NO_CATEGORY_LABEL, ev.location].filter(Boolean).join(' · '),
+                hue: c?.hue ?? null,
                 startCol,
                 endCol,
                 roundLeft: isoDval(ev.startDate) >= rowStart.getTime(),
@@ -134,6 +140,7 @@ export default function MonthView() {
     const { data: categories = [] } = useCategories();
     const { data: events = [] } = useEvents();
     const monthOffset = usePlannerStore((s) => s.monthOffset);
+    const openEventModalNew = usePlannerStore((s) => s.openEventModalNew);
     const openEventModalEdit = usePlannerStore((s) => s.openEventModalEdit);
     const today = useToday();
     const [hoverBarId, setHoverBarId] = useState<string | null>(null);
@@ -168,6 +175,7 @@ export default function MonthView() {
                             {week.cells.map((cell, ci) => (
                                 <div
                                     key={ci}
+                                    onDoubleClick={() => openEventModalNew(null, cell.dateIso)}
                                     style={{
                                         padding: '4px 5px',
                                         borderRight: `1px solid oklch(91% 0.004 95)`,
@@ -215,6 +223,7 @@ export default function MonthView() {
                                                     const ev = events.find((e) => e.id === item.id);
                                                     if (ev) openEventModalEdit(ev.id);
                                                 }}
+                                                onDoubleClick={(e) => e.stopPropagation()}
                                                 style={{
                                                     flex: 'none',
                                                     lineHeight: '14px',

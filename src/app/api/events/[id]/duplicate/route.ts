@@ -13,6 +13,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
             data: {
                 categoryId: original.categoryId,
                 title: `${original.title} (copia)`,
+                location: original.location,
                 startDate: original.startDate,
                 endDate: original.endDate,
                 start: original.start,
