@@ -1,13 +1,20 @@
-'use client';
-
-import { useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type CSSProperties, type KeyboardEvent } from 'react';
+import {
+    useEffect,
+    useId,
+    useLayoutEffect,
+    useRef,
+    useState,
+    type ChangeEvent,
+    type CSSProperties,
+    type KeyboardEvent,
+    type ReactNode,
+} from 'react';
+import { cx } from './tokens.js';
+import { FieldShell } from './field.js';
 
 const clampHour = (n: number) => Math.min(23, Math.max(0, n));
 const clampMinute = (n: number) => Math.min(59, Math.max(0, n));
 const pad = (n: number) => String(n).padStart(2, '0');
-
-/** Plain text inputs have no intrinsic width like the native time widget did — fall back to a fixed width sized for "HH:MM" unless the caller sets its own (e.g. `width: '100%'` in a flex column). */
-const defaultStyle: CSSProperties = { width: 72, textAlign: 'center' };
 
 /** Formats free-typed digits into a partial "H", "HH", "HH:M", or "HH:MM" string, clamping each half as soon as it's complete. */
 function formatTyped(digits: string): string {
@@ -30,21 +37,43 @@ function caretForDigitCount(formatted: string, digitCount: number): number {
     return formatted.length;
 }
 
-/** Always renders/accepts 24h "HH:MM", regardless of browser or OS locale — replaces the native `<input type="time">` picker. */
+export interface TimeInputProps {
+    /** 24h "HH:MM". Normalized on blur, so a partially typed value is fine mid-edit. */
+    value: string;
+    /** Fires on blur with a normalized "HH:MM", only when the value actually changed. */
+    onChange: (value: string) => void;
+    /** Renders the input inside a labelled field shell, full width. */
+    label?: ReactNode;
+    hint?: ReactNode;
+    error?: ReactNode;
+    disabled?: boolean;
+    id?: string;
+    className?: string;
+    style?: CSSProperties;
+}
+
+/**
+ * Always renders and accepts 24h "HH:MM", regardless of browser or OS locale —
+ * the planner's replacement for the native `<input type="time">` picker.
+ * Standalone it is sized for "HH:MM"; given a `label` it stretches to fill its
+ * column like any other field.
+ */
 export function TimeInput({
     value,
     onChange,
-    style,
+    label,
+    hint,
+    error,
+    disabled,
     id,
-}: {
-    value: string;
-    onChange: (value: string) => void;
-    style?: CSSProperties;
-    id?: string;
-}) {
+    className,
+    style,
+}: TimeInputProps) {
     const [text, setText] = useState(value);
     const inputRef = useRef<HTMLInputElement>(null);
     const pendingCaret = useRef<number | null>(null);
+    const autoId = useId();
+    const inputId = id ?? autoId;
 
     useEffect(() => {
         setText(value);
@@ -73,21 +102,31 @@ export function TimeInput({
         if (next !== value) onChange(next);
     };
 
-    return (
+    const input = (
         <input
             ref={inputRef}
-            id={id}
+            id={inputId}
             type="text"
             inputMode="numeric"
             placeholder="HH:MM"
             value={text}
+            disabled={disabled}
             onChange={handleChange}
             onBlur={commit}
             onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
                 if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
             }}
             maxLength={5}
-            style={{ ...defaultStyle, ...style, fontVariantNumeric: 'tabular-nums' }}
+            className={cx('pl-input', 'pl-input--time', className)}
+            style={{ fontVariantNumeric: 'tabular-nums', ...style }}
         />
+    );
+
+    if (label == null && hint == null && error == null) return input;
+
+    return (
+        <FieldShell id={inputId} label={label} hint={hint} error={error}>
+            {input}
+        </FieldShell>
     );
 }

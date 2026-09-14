@@ -3,14 +3,13 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Button, Checkbox, Modal, SelectField, TextField, TimeInput } from '@planner/ui';
 import { usePlannerStore } from '../../store';
 import { useCategories } from '@/lib/api/categories';
 import { useEvents } from '@/lib/api/events';
 import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from '@/lib/api/tasks';
 import { apiErrorMessage } from '@/lib/api/http';
 import { taskFormSchema, type TaskFormValues } from '../../schemas';
-import { checkboxLabelStyle, closeButtonStyle, colors, dangerButtonStyle, inputStyle, labelStyle, modalCardStyle, modalHeaderStyle, modalOverlayStyle, modalTitleStyle, primaryButtonStyle } from '../../styles';
-import { TimeInput } from '../TimeInput';
 
 export default function TaskModal() {
     const { data: categories = [] } = useCategories();
@@ -105,90 +104,71 @@ export default function TaskModal() {
     };
 
     return (
-        <div style={modalOverlayStyle}>
-            <form onSubmit={handleSubmit(onSubmit)} style={modalCardStyle}>
-                <div style={modalHeaderStyle}>
-                    <div style={modalTitleStyle}>{editingTask ? 'Editar tarea' : 'Nueva tarea'}</div>
-                    <button type="button" onClick={closeTaskModal} style={closeButtonStyle} aria-label="Cerrar">×</button>
-                </div>
-                <div>
-                    <div style={labelStyle}>Título</div>
-                    <input {...register('title')} placeholder="ej. Repasar materia" style={inputStyle} />
-                </div>
-                <div>
-                    <div style={labelStyle}>Categoría</div>
-                    <select {...register('categoryId')} style={inputStyle}>
-                        {categories.map((c) => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                    </select>
-                </div>
-                <div>
-                    <div style={labelStyle}>Fecha (opcional)</div>
-                    <input type="date" {...register('date')} style={inputStyle} />
-                    {!date && (
-                        <div style={{ fontSize: 11, color: colors.muted, marginTop: 4 }}>
-                            Sin fecha, la tarea queda en el backlog hasta que le asignes un día.
-                        </div>
-                    )}
-                </div>
-                <div>
-                    <div style={labelStyle}>Asociar a evento (opcional)</div>
-                    <select {...register('eventId')} style={inputStyle}>
-                        <option value="">Ninguno</option>
-                        {taskEventLinkOptions.map((e) => (
-                            <option key={e.id} value={e.id}>{e.title}</option>
-                        ))}
-                    </select>
-                </div>
-                {date && (
-                    <label style={checkboxLabelStyle}>
-                        <input type="checkbox" {...register('hasTime')} />
-                        Incluir horario
-                    </label>
-                )}
-                {date && hasTime && (
-                    <div style={{ display: 'flex', gap: 10 }}>
-                        <div style={{ flex: 1 }}>
-                            <div style={labelStyle}>Hora inicio</div>
-                            <Controller name="startTime" control={control} render={({ field }) => <TimeInput value={field.value} onChange={field.onChange} style={inputStyle} />} />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                            <div style={labelStyle}>Hora término</div>
-                            <Controller name="endTime" control={control} render={({ field }) => <TimeInput value={field.value} onChange={field.onChange} style={inputStyle} />} />
-                        </div>
-                    </div>
-                )}
-                <label style={checkboxLabelStyle}>
-                    <input type="checkbox" {...register('hasDeadline')} />
-                    Incluir fecha límite (deadline)
-                </label>
-                {hasDeadline && (
-                    <div>
-                        <div style={labelStyle}>Fecha límite</div>
-                        <input type="date" {...register('deadline')} style={inputStyle} />
-                    </div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 6 }}>
+        <Modal
+            asForm
+            title={editingTask ? 'Editar tarea' : 'Nueva tarea'}
+            onClose={closeTaskModal}
+            onSubmit={handleSubmit(onSubmit)}
+            footer={
+                <>
                     {editingTask ? (
-                        <button
-                            type="button"
+                        <Button
+                            variant="danger"
                             onClick={() =>
                                 deleteTask.mutate(editingTask.id, {
                                     onSuccess: closeTaskModal,
                                     onError: (e) => window.alert(apiErrorMessage(e)),
                                 })
                             }
-                            style={dangerButtonStyle}
                         >
                             Eliminar
-                        </button>
+                        </Button>
                     ) : (
-                        <div />
+                        <span />
                     )}
-                    <button type="submit" style={primaryButtonStyle}>Guardar</button>
+                    <Button type="submit">Guardar</Button>
+                </>
+            }
+        >
+            <TextField label="Título" placeholder="ej. Repasar materia" {...register('title')} />
+            <SelectField
+                label="Categoría"
+                options={categories.map((c) => ({ value: c.id, label: c.name }))}
+                {...register('categoryId')}
+            />
+            <TextField
+                label="Fecha (opcional)"
+                type="date"
+                hint={!date ? 'Sin fecha, la tarea queda en el backlog hasta que le asignes un día.' : undefined}
+                {...register('date')}
+            />
+            <SelectField
+                label="Asociar a evento (opcional)"
+                placeholder="Ninguno"
+                options={taskEventLinkOptions.map((e) => ({ value: e.id, label: e.title }))}
+                {...register('eventId')}
+            />
+            {date && <Checkbox label="Incluir horario" {...register('hasTime')} />}
+            {date && hasTime && (
+                <div style={{ display: 'flex', gap: 'var(--pl-space-lg)' }}>
+                    <div style={{ flex: 1 }}>
+                        <Controller
+                            name="startTime"
+                            control={control}
+                            render={({ field }) => <TimeInput label="Hora inicio" value={field.value} onChange={field.onChange} />}
+                        />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <Controller
+                            name="endTime"
+                            control={control}
+                            render={({ field }) => <TimeInput label="Hora término" value={field.value} onChange={field.onChange} />}
+                        />
+                    </div>
                 </div>
-            </form>
-        </div>
+            )}
+            <Checkbox label="Incluir fecha límite (deadline)" {...register('hasDeadline')} />
+            {hasDeadline && <TextField label="Fecha límite" type="date" {...register('deadline')} />}
+        </Modal>
     );
 }

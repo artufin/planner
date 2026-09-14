@@ -1,51 +1,11 @@
 'use client';
 
-import type { CSSProperties } from 'react';
+import { Button, IconButton, SegmentedControl, Swatch, colors } from '@planner/ui';
 import { usePlannerStore } from '../store';
 import { useCategories, useDeleteCategory } from '@/lib/api/categories';
 import { apiErrorMessage } from '@/lib/api/http';
-import { colors, primaryButtonStyle, smallDangerButtonStyle, smallSecondaryButtonStyle } from '../styles';
-import { categoryById, getRangeLabel, solidColor } from '../utils';
+import { categoryById, getRangeLabel } from '../utils';
 import { useToday } from '../useToday';
-
-const navButtonStyle: CSSProperties = {
-    width: 28,
-    height: 28,
-    borderRadius: 7,
-    border: `1px solid ${colors.border}`,
-    background: '#fff',
-    cursor: 'pointer',
-    fontSize: 14,
-    color: 'oklch(40% 0.01 95)',
-};
-
-const todayButtonStyle: CSSProperties = {
-    height: 28,
-    padding: '0 12px',
-    borderRadius: 7,
-    border: `1px solid ${colors.border}`,
-    background: '#fff',
-    cursor: 'pointer',
-    fontSize: 12.5,
-    fontWeight: 600,
-    color: 'oklch(40% 0.01 95)',
-};
-
-function tabStyle(active: boolean): CSSProperties {
-    return {
-        height: 30,
-        padding: '0 16px',
-        border: 'none',
-        borderRadius: 7,
-        fontSize: 12.5,
-        fontWeight: 700,
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-        background: active ? '#fff' : 'transparent',
-        color: active ? 'oklch(30% 0.01 95)' : 'oklch(50% 0.01 95)',
-        boxShadow: active ? '0 1px 2px oklch(0% 0 0 / 0.06)' : 'none',
-    };
-}
 
 function NavArrows() {
     const goPrev = usePlannerStore((s) => s.goPrev);
@@ -53,9 +13,9 @@ function NavArrows() {
     const goToday = usePlannerStore((s) => s.goToday);
     return (
         <>
-            <button onClick={goPrev} style={navButtonStyle}>‹</button>
-            <button onClick={goNext} style={navButtonStyle}>›</button>
-            <button onClick={goToday} style={todayButtonStyle}>Hoy</button>
+            <IconButton aria-label="Anterior" onClick={goPrev}>‹</IconButton>
+            <IconButton aria-label="Siguiente" onClick={goNext}>›</IconButton>
+            <Button variant="secondary" size="sm" onClick={goToday}>Hoy</Button>
         </>
     );
 }
@@ -107,7 +67,7 @@ export default function TopBar() {
                         <div onClick={goToCategoriesList} style={{ cursor: 'pointer', fontSize: 14, fontWeight: 600, color: colors.muted }}>
                             Categorías /
                         </div>
-                        <div style={{ width: 14, height: 14, borderRadius: 5, background: solidColor(selectedCategory.hue), flex: 'none' }} />
+                        <Swatch hue={selectedCategory.hue} />
                         <div style={{ fontSize: 15, fontWeight: 700 }}>{selectedCategory.name}</div>
                     </div>
                 )}
@@ -128,18 +88,16 @@ export default function TopBar() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                {isCalendarView && (
-                    <button onClick={() => openEventModalNew()} style={primaryButtonStyle}>+ Agregar evento</button>
-                )}
-                {isCategoriesListView && (
-                    <button onClick={openCategoryModalNew} style={primaryButtonStyle}>+ Nueva categoría</button>
-                )}
+                {isCalendarView && <Button onClick={() => openEventModalNew()}>+ Agregar evento</Button>}
+                {isCategoriesListView && <Button onClick={openCategoryModalNew}>+ Nueva categoría</Button>}
                 {isCategoryView && selectedCategoryId && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <button onClick={() => openCategoryModalEdit(selectedCategoryId)} style={smallSecondaryButtonStyle}>
+                        <Button variant="secondary" size="sm" onClick={() => openCategoryModalEdit(selectedCategoryId)}>
                             Editar categoría
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                            variant="danger"
+                            size="sm"
                             onClick={() => {
                                 if (window.confirm('¿Eliminar esta categoría y todos sus horarios/eventos/tareas?')) {
                                     deleteCategory.mutate(selectedCategoryId, {
@@ -148,23 +106,33 @@ export default function TopBar() {
                                     });
                                 }
                             }}
-                            style={smallDangerButtonStyle}
                         >
                             Eliminar
-                        </button>
+                        </Button>
                     </div>
                 )}
                 {isWeekView && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: colors.controlBg, borderRadius: 9, padding: 3 }}>
-                        <button onClick={zoomOut} style={{ width: 26, height: 26, borderRadius: 6, border: 'none', background: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: 'oklch(40% 0.01 95)' }}>−</button>
-                        <button onClick={zoomIn} style={{ width: 26, height: 26, borderRadius: 6, border: 'none', background: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: 'oklch(40% 0.01 95)' }}>+</button>
-                    </div>
+                    <SegmentedControl
+                        ariaLabel="Zoom"
+                        size="sm"
+                        value={null}
+                        onChange={(v) => (v === 'out' ? zoomOut() : zoomIn())}
+                        options={[
+                            { value: 'out', label: '−', ariaLabel: 'Alejar' },
+                            { value: 'in', label: '+', ariaLabel: 'Acercar' },
+                        ]}
+                    />
                 )}
                 {isCalendarView && (
-                    <div style={{ display: 'flex', alignItems: 'center', background: colors.controlBg, borderRadius: 9, padding: 3, gap: 2 }}>
-                        <button onClick={goToMonth} style={tabStyle(isMonthView)}>Calendario</button>
-                        <button onClick={goToWeek} style={tabStyle(isWeekView)}>Semana</button>
-                    </div>
+                    <SegmentedControl
+                        ariaLabel="Vista"
+                        value={isMonthView ? 'month' : 'week'}
+                        onChange={(v) => (v === 'month' ? goToMonth() : goToWeek())}
+                        options={[
+                            { value: 'month', label: 'Calendario' },
+                            { value: 'week', label: 'Semana' },
+                        ]}
+                    />
                 )}
             </div>
         </div>

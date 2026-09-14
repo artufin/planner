@@ -1,15 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { Button, IconButton, Swatch, TimeInput, colors } from '@planner/ui';
 import { usePlannerStore } from '../../store';
 import { useGroups, useRenameGroup, useCreateGroup, useDeleteGroup } from '@/lib/api/groups';
 import { useCategories, useUpdateCategory } from '@/lib/api/categories';
 import { useTimeDivisions, useAddTimeDivision, useDeleteTimeDivision } from '@/lib/api/timeDivisions';
 import { apiErrorMessage } from '@/lib/api/http';
-import { colors, smallSecondaryButtonStyle } from '../../styles';
 import type { SettingsSubview } from '../../types';
-import { solidColor, timeToMinutes } from '../../utils';
-import { TimeInput } from '../TimeInput';
+import { timeToMinutes } from '../../utils';
 
 const TABS: { id: SettingsSubview; label: string }[] = [
     { id: 'groups', label: 'Grupos' },
@@ -25,9 +24,21 @@ function tabStyle(active: boolean) {
         fontSize: 13,
         fontWeight: 600,
         background: active ? colors.accentSoftBg : undefined,
-        color: active ? colors.accentText : 'oklch(35% 0.01 95)',
+        color: active ? colors.accentText : colors.textNav,
     } as const;
 }
+
+const listRowStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '8px 10px',
+    border: `1px solid ${colors.border}`,
+    borderRadius: 10,
+    background: colors.surface,
+} as const;
+
+const sectionTitleStyle = { fontSize: 15, fontWeight: 700 } as const;
 
 export default function SettingsView() {
     const settingsSubview = usePlannerStore((s) => s.settingsSubview);
@@ -59,28 +70,34 @@ export default function SettingsView() {
                 {settingsSubview === 'groups' && (
                     <>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                            <div style={{ fontSize: 15, fontWeight: 700 }}>Grupos de categorías</div>
-                            <button onClick={() => createGroup.mutate('Nuevo grupo')} style={smallSecondaryButtonStyle}>+ Agregar grupo</button>
+                            <div style={sectionTitleStyle}>Grupos de categorías</div>
+                            <Button variant="secondary" size="sm" onClick={() => createGroup.mutate('Nuevo grupo')}>
+                                + Agregar grupo
+                            </Button>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                             {groups.map((g) => {
                                 const count = categories.filter((c) => c.groupId === g.id).length;
                                 return (
-                                    <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', border: '1px solid oklch(90% 0.004 95)', borderRadius: 10, background: '#fff' }}>
+                                    <div key={g.id} style={listRowStyle}>
                                         <input
                                             defaultValue={g.name}
                                             onBlur={(e) => {
                                                 if (e.target.value !== g.name) renameGroup.mutate({ id: g.id, name: e.target.value });
                                             }}
-                                            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', color: 'oklch(25% 0.01 95)', background: 'transparent' }}
+                                            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', color: colors.fieldText, background: 'transparent' }}
                                         />
-                                        <div style={{ fontSize: 11, color: 'oklch(60% 0.01 95)' }}>{count} {count === 1 ? 'categoría' : 'categorías'}</div>
-                                        <button
+                                        <div style={{ fontSize: 11, color: colors.mutedLight }}>
+                                            {count} {count === 1 ? 'categoría' : 'categorías'}
+                                        </div>
+                                        <IconButton
+                                            size="sm"
+                                            aria-label={`Eliminar ${g.name}`}
                                             onClick={() => deleteGroup.mutate(g.id, { onError: (e) => window.alert(apiErrorMessage(e)) })}
-                                            style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${colors.dangerBorder}`, background: '#fff', cursor: 'pointer', color: colors.dangerText, fontSize: 13 }}
+                                            style={{ borderColor: colors.dangerBorder, color: colors.dangerText }}
                                         >
                                             ×
-                                        </button>
+                                        </IconButton>
                                     </div>
                                 );
                             })}
@@ -90,16 +107,17 @@ export default function SettingsView() {
 
                 {settingsSubview === 'categories' && (
                     <>
-                        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Categorías por grupo</div>
+                        <div style={{ ...sectionTitleStyle, marginBottom: 14 }}>Categorías por grupo</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                             {categories.map((c) => (
-                                <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', border: '1px solid oklch(90% 0.004 95)', borderRadius: 10, background: '#fff' }}>
-                                    <div style={{ width: 12, height: 12, borderRadius: 4, background: solidColor(c.hue), flex: 'none' }} />
+                                <div key={c.id} style={{ ...listRowStyle, gap: 10 }}>
+                                    <Swatch hue={c.hue} size={12} />
                                     <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{c.name}</div>
                                     <select
                                         value={c.groupId ?? ''}
                                         onChange={(e) => updateCategory.mutate({ id: c.id, groupId: e.target.value })}
-                                        style={{ height: 30, padding: '0 8px', border: '1px solid oklch(87% 0.004 95)', borderRadius: 7, fontSize: 12, fontFamily: 'inherit' }}
+                                        className="pl-input"
+                                        style={{ width: 'auto', height: 30, padding: '0 8px', borderRadius: 7, fontSize: 12 }}
                                     >
                                         {groups.map((g) => (
                                             <option key={g.id} value={g.id}>{g.name}</option>
@@ -113,33 +131,29 @@ export default function SettingsView() {
 
                 {settingsSubview === 'schedule' && (
                     <>
-                        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>Divisiones horarias (vista Semana)</div>
+                        <div style={{ ...sectionTitleStyle, marginBottom: 6 }}>Divisiones horarias (vista Semana)</div>
                         <div style={{ fontSize: 12, color: colors.muted, marginBottom: 14 }}>
                             Las divisiones se ubican en su posición real dentro del día, manteniendo la proporción de tiempo entre ellas.
                         </div>
-                        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                            <TimeInput
-                                value={newDivisionTime}
-                                onChange={setNewDivisionTime}
-                                style={{ height: 32, padding: '0 10px', border: '1px solid oklch(87% 0.004 95)', borderRadius: 7, fontSize: 13, fontFamily: 'inherit' }}
-                            />
-                            <button
-                                onClick={() => addTimeDivision.mutate(newDivisionTime)}
-                                style={{ height: 32, padding: '0 14px', borderRadius: 7, border: 'none', background: colors.accent, color: '#fff', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}
-                            >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                            <TimeInput value={newDivisionTime} onChange={setNewDivisionTime} />
+                            <Button size="sm" onClick={() => addTimeDivision.mutate(newDivisionTime)}>
                                 + Agregar división
-                            </button>
+                            </Button>
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                             {sortedDivisions.map((d) => (
-                                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 5px 5px 12px', borderRadius: 7, background: colors.chipBg, fontSize: 12.5, fontWeight: 600, color: 'oklch(30% 0.01 95)' }}>
+                                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 5px 5px 12px', borderRadius: 7, background: colors.chipBg, fontSize: 12.5, fontWeight: 600, color: colors.textStrong }}>
                                     {d.value}
-                                    <button
+                                    <IconButton
+                                        size="xs"
+                                        variant="plain"
+                                        tone="muted"
+                                        aria-label={`Eliminar división ${d.value}`}
                                         onClick={() => deleteTimeDivision.mutate(d.value, { onError: (e) => window.alert(apiErrorMessage(e)) })}
-                                        style={{ width: 20, height: 20, borderRadius: 5, border: 'none', background: 'transparent', cursor: 'pointer', color: colors.muted, fontSize: 13 }}
                                     >
                                         ×
-                                    </button>
+                                    </IconButton>
                                 </div>
                             ))}
                         </div>

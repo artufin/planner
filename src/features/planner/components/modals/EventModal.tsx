@@ -3,15 +3,14 @@
 import { useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Button, Checkbox, Modal, SelectField, TextField, TimeInput } from '@planner/ui';
 import { usePlannerStore } from '../../store';
 import { useCategories } from '@/lib/api/categories';
 import { useEvents, useCreateEvent, useUpdateEvent, useDeleteEvent, useDuplicateEvent } from '@/lib/api/events';
 import { useCreateTask } from '@/lib/api/tasks';
 import { apiErrorMessage } from '@/lib/api/http';
 import { eventFormSchema, type EventFormValues } from '../../schemas';
-import { checkboxLabelStyle, closeButtonStyle, dangerButtonStyle, inputStyle, labelStyle, modalCardStyle, modalHeaderStyle, modalOverlayStyle, modalTitleStyle, primaryButtonStyle, secondaryButtonStyle } from '../../styles';
 import { dateToInput, inputToDate, timeToMinutes } from '../../utils';
-import { TimeInput } from '../TimeInput';
 
 export default function EventModal() {
     const { data: categories = [] } = useCategories();
@@ -113,93 +112,71 @@ export default function EventModal() {
     };
 
     return (
-        <div style={modalOverlayStyle}>
-            <form onSubmit={handleSubmit(onSubmit)} style={modalCardStyle}>
-                <div style={modalHeaderStyle}>
-                    <div style={modalTitleStyle}>{editingEvent ? 'Editar evento' : 'Agregar evento'}</div>
-                    <button type="button" onClick={closeEventModal} style={closeButtonStyle} aria-label="Cerrar">×</button>
-                </div>
-                <div>
-                    <div style={labelStyle}>Título</div>
-                    <input {...register('title')} placeholder="ej. Entrega de informe" style={inputStyle} />
-                </div>
-                <div>
-                    <div style={labelStyle}>Categoría (opcional)</div>
-                    <select {...register('categoryId')} style={inputStyle}>
-                        <option value="">Sin categoría</option>
-                        {categories.map((c) => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                    </select>
-                </div>
-                <div>
-                    <div style={labelStyle}>Ubicación (opcional)</div>
-                    <input {...register('location')} placeholder="ej. Sala 204" style={inputStyle} />
-                </div>
-                <div>
-                    <div style={labelStyle}>Fecha</div>
-                    <input type="date" {...register('startDate')} style={inputStyle} />
-                </div>
-                <label style={checkboxLabelStyle}>
-                    <input type="checkbox" {...register('hasStartTime')} />
-                    Incluir hora de inicio
-                </label>
-                {hasStartTime && (
-                    <div>
-                        <div style={labelStyle}>Hora inicio</div>
-                        <Controller name="startTime" control={control} render={({ field }) => <TimeInput value={field.value} onChange={field.onChange} style={inputStyle} />} />
-                    </div>
-                )}
-                <label style={checkboxLabelStyle}>
-                    <input type="checkbox" {...register('hasEndTime')} />
-                    Incluir hora de término
-                </label>
-                {hasEndTime && (
-                    <div>
-                        <div style={labelStyle}>Hora término</div>
-                        <Controller name="endTime" control={control} render={({ field }) => <TimeInput value={field.value} onChange={field.onChange} style={inputStyle} />} />
-                    </div>
-                )}
-                {isDeadlineEvent && !editingEvent && categoryId && (
-                    <label style={checkboxLabelStyle}>
-                        <input type="checkbox" {...register('createTask')} />
-                        Crear tarea
-                    </label>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 6 }}>
+        <Modal
+            asForm
+            title={editingEvent ? 'Editar evento' : 'Agregar evento'}
+            onClose={closeEventModal}
+            onSubmit={handleSubmit(onSubmit)}
+            footer={
+                <>
                     {editingEvent ? (
-                        <div style={{ display: 'flex', gap: 8 }}>
-                            <button
-                                type="button"
+                        <div style={{ display: 'flex', gap: 'var(--pl-space-md)' }}>
+                            <Button
+                                variant="danger"
                                 onClick={() =>
                                     deleteEvent.mutate(editingEvent.id, {
                                         onSuccess: closeEventModal,
                                         onError: (e) => window.alert(apiErrorMessage(e)),
                                     })
                                 }
-                                style={dangerButtonStyle}
                             >
                                 Eliminar
-                            </button>
-                            <button
-                                type="button"
+                            </Button>
+                            <Button
+                                variant="secondary"
                                 onClick={() =>
                                     duplicateEvent.mutate(editingEvent.id, {
                                         onSuccess: closeEventModal,
                                         onError: (e) => window.alert(apiErrorMessage(e)),
                                     })
                                 }
-                                style={secondaryButtonStyle}
                             >
                                 Duplicar
-                            </button>
+                            </Button>
                         </div>
                     ) : (
-                        <div />
+                        <span />
                     )}
-                    <button type="submit" style={primaryButtonStyle}>Guardar</button>
-                </div>
-            </form>
-        </div>
+                    <Button type="submit">Guardar</Button>
+                </>
+            }
+        >
+            <TextField label="Título" placeholder="ej. Entrega de informe" {...register('title')} />
+            <SelectField
+                label="Categoría (opcional)"
+                placeholder="Sin categoría"
+                options={categories.map((c) => ({ value: c.id, label: c.name }))}
+                {...register('categoryId')}
+            />
+            <TextField label="Ubicación (opcional)" placeholder="ej. Sala 204" {...register('location')} />
+            <TextField label="Fecha" type="date" {...register('startDate')} />
+            <Checkbox label="Incluir hora de inicio" {...register('hasStartTime')} />
+            {hasStartTime && (
+                <Controller
+                    name="startTime"
+                    control={control}
+                    render={({ field }) => <TimeInput label="Hora inicio" value={field.value} onChange={field.onChange} />}
+                />
+            )}
+            <Checkbox label="Incluir hora de término" {...register('hasEndTime')} />
+            {hasEndTime && (
+                <Controller
+                    name="endTime"
+                    control={control}
+                    render={({ field }) => <TimeInput label="Hora término" value={field.value} onChange={field.onChange} />}
+                />
+            )}
+            {isDeadlineEvent && !editingEvent && categoryId && <Checkbox label="Crear tarea" {...register('createTask')} />}
+        </Modal>
     );
 }

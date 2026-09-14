@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope } from 'next/font/google';
+// The design system first, then app-level overrides.
+import '@planner/ui/styles.css';
 import "./globals.css";
 
 import Providers from '@/components/Providers'

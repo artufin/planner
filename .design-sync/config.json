@@ -1,0 +1,27 @@
+{
+  "pkg": "@planner/ui",
+  "globalName": "PlannerUI",
+  "shape": "package",
+  "buildCmd": "node packages/ui/build.mjs",
+  "srcDir": "src",
+  "cssEntry": "dist/styles.css",
+  "tokensPkg": "@planner/ui",
+  "tokensGlob": "dist/tokens.css",
+  "docsDir": "docs/components",
+  "guidelinesGlob": "docs/guides/**/*.md",
+  "overrides": {
+    "Modal": {
+      "cardMode": "column"
+    },
+    "Button": {
+      "cardMode": "column"
+    },
+    "CategoryCard": {
+      "cardMode": "column"
+    },
+    "SectionDivider": {
+      "cardMode": "column"
+    }
+  },
+  "readmeHeader": ".design-sync/conventions.md"
+}

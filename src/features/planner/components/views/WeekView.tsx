@@ -7,7 +7,7 @@ import { useEvents } from '@/lib/api/events';
 import { useSchedule, useScheduleExceptions } from '@/lib/api/schedule';
 import { useTimeDivisions } from '@/lib/api/timeDivisions';
 import { AllDayBar, type AllDayBarSegment } from '../AllDayBar';
-import { colors } from '../../styles';
+import { colors } from '@planner/ui';
 import { NO_CATEGORY_LABEL, WEEKDAY_LABELS } from '../../constants';
 import {
     categoryById,

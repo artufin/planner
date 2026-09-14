@@ -1,12 +1,11 @@
 'use client';
 
 import { useMemo } from 'react';
+import { CategoryCard, SectionDivider } from '@planner/ui';
 import { usePlannerStore } from '../../store';
 import { useGroups } from '@/lib/api/groups';
 import { useCategories } from '@/lib/api/categories';
 import { useTasks } from '@/lib/api/tasks';
-import { colors } from '../../styles';
-import { solidColor, softTextColor } from '../../utils';
 
 export default function CategoriesListView() {
     const { data: groups = [] } = useGroups();
@@ -34,44 +33,18 @@ export default function CategoriesListView() {
         <div style={{ padding: '28px 32px', maxWidth: 940 }}>
             {categoryGroups.map((grp, gi) => (
                 <div key={grp.name + gi}>
-                    <div style={{ position: 'relative', margin: gi ? '28px 0 14px' : '0 0 14px' }}>
-                        <div style={{ borderTop: '1px solid oklch(85% 0.005 95)' }} />
-                        <div
-                            style={{
-                                position: 'absolute',
-                                top: -8,
-                                left: 8,
-                                background: colors.pageBg,
-                                padding: '0 8px',
-                                fontSize: 11,
-                                fontWeight: 700,
-                                letterSpacing: '0.04em',
-                                color: colors.muted,
-                            }}
-                        >
-                            {grp.name}
-                        </div>
+                    <div style={{ margin: gi ? '28px 0 14px' : '0 0 14px' }}>
+                        <SectionDivider label={grp.name} />
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 14 }}>
                         {grp.cards.map((c) => (
-                            <div
+                            <CategoryCard
                                 key={c.id}
+                                name={c.name}
+                                hue={c.hue}
+                                meta={c.pendingLabel}
                                 onClick={() => selectCategory(c.id)}
-                                style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: 3,
-                                    padding: 14,
-                                    border: `1px solid ${colors.border}`,
-                                    borderRadius: 10,
-                                    background: '#fff',
-                                    cursor: 'pointer',
-                                }}
-                            >
-                                <div style={{ width: '100%', height: 4, borderRadius: 3, background: solidColor(c.hue), marginBottom: 6 }} />
-                                <div style={{ fontSize: 14.5, fontWeight: 700 }}>{c.name}</div>
-                                <div style={{ fontSize: 11.5, fontWeight: 600, marginTop: 6, color: softTextColor(c.hue) }}>{c.pendingLabel}</div>
-                            </div>
+                            />
                         ))}
                     </div>
                 </div>

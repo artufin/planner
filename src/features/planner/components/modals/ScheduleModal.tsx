@@ -3,19 +3,28 @@
 import { useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Button, Checkbox, Modal, SelectField, TextField, TimeInput } from '@planner/ui';
 import { usePlannerStore } from '../../store';
 import { useCategories } from '@/lib/api/categories';
 import { useSchedule, useScheduleExceptions, useCreateScheduleItem, useUpdateScheduleItem, useDeleteScheduleItem, useUpsertScheduleException } from '@/lib/api/schedule';
 import { apiErrorMessage } from '@/lib/api/http';
 import { scheduleFormSchema, scheduleOccurrenceFormSchema, type ScheduleFormValues, type ScheduleOccurrenceFormValues } from '../../schemas';
 import { MONTH_NAMES, WEEKDAY_OPTIONS } from '../../constants';
-import { checkboxLabelStyle, closeButtonStyle, dangerButtonStyle, inputStyle, labelStyle, modalCardStyle, modalHeaderStyle, modalOverlayStyle, modalTitleStyle, primaryButtonStyle } from '../../styles';
 import { categoryById, dateToInput, inputToDate, scheduleTitleFor } from '../../utils';
 import type { ScheduleItem } from '@/lib/api/types';
-import { TimeInput } from '../TimeInput';
 
-const errorTextStyle = { fontSize: 11, color: 'oklch(55% 0.18 25)', marginTop: 3 };
-const linkButtonStyle = { border: 'none', background: 'none', padding: 0, fontSize: 11.5, fontWeight: 600, color: 'oklch(50% 0.01 95)', textDecoration: 'underline', cursor: 'pointer' } as const;
+const linkButtonStyle = {
+    alignSelf: 'center',
+    border: 'none',
+    background: 'none',
+    padding: 0,
+    fontSize: 11.5,
+    fontWeight: 600,
+    fontFamily: 'inherit',
+    color: 'var(--pl-color-label)',
+    textDecoration: 'underline',
+    cursor: 'pointer',
+} as const;
 
 function ScheduleOccurrenceModal({ item, date }: { item: ScheduleItem; date: string }) {
     const { data: categories = [] } = useCategories();
@@ -52,49 +61,54 @@ function ScheduleOccurrenceModal({ item, date }: { item: ScheduleItem; date: str
         );
 
     return (
-        <div style={modalOverlayStyle}>
-            <form onSubmit={handleSubmit(onSubmit)} style={{ ...modalCardStyle, width: 340 }}>
-                <div style={modalHeaderStyle}>
-                    <div style={modalTitleStyle}>{scheduleTitleFor(item, category)}</div>
-                    <button type="button" onClick={closeScheduleModal} style={closeButtonStyle} aria-label="Cerrar">×</button>
-                </div>
-                <div style={{ fontSize: 11.5, color: 'oklch(55% 0.01 95)', marginTop: -8 }}>
-                    {d} de {MONTH_NAMES[m]} de {y} · solo esta clase
-                </div>
-                <div>
-                    <div style={labelStyle}>Título (opcional)</div>
-                    <input {...register('title')} placeholder="Si se deja vacío, se usa el nombre de la categoría" style={inputStyle} />
-                </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                    <div style={{ flex: 1 }}>
-                        <div style={labelStyle}>Hora inicio</div>
-                        <Controller name="start" control={control} render={({ field }) => <TimeInput value={field.value} onChange={field.onChange} style={inputStyle} />} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                        <div style={labelStyle}>Hora término</div>
-                        <Controller name="end" control={control} render={({ field }) => <TimeInput value={field.value} onChange={field.onChange} style={inputStyle} />} />
-                    </div>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 6 }}>
-                    <button
-                        type="button"
+        <Modal
+            asForm
+            width={340}
+            title={scheduleTitleFor(item, category)}
+            onClose={closeScheduleModal}
+            onSubmit={handleSubmit(onSubmit)}
+            footer={
+                <>
+                    <Button
+                        variant="danger"
                         onClick={() =>
-                            upsertException.mutate(
-                                { scheduleId: item.id, date, cancelled: true },
-                                { onSuccess: closeScheduleModal, onError },
-                            )
+                            upsertException.mutate({ scheduleId: item.id, date, cancelled: true }, { onSuccess: closeScheduleModal, onError })
                         }
-                        style={dangerButtonStyle}
                     >
                         Eliminar esta clase
-                    </button>
-                    <button type="submit" style={primaryButtonStyle}>Guardar</button>
+                    </Button>
+                    <Button type="submit">Guardar</Button>
+                </>
+            }
+        >
+            <div style={{ fontSize: 11.5, color: 'var(--pl-color-muted)', marginTop: -8 }}>
+                {d} de {MONTH_NAMES[m]} de {y} · solo esta clase
+            </div>
+            <TextField
+                label="Título (opcional)"
+                placeholder="Si se deja vacío, se usa el nombre de la categoría"
+                {...register('title')}
+            />
+            <div style={{ display: 'flex', gap: 'var(--pl-space-lg)' }}>
+                <div style={{ flex: 1 }}>
+                    <Controller
+                        name="start"
+                        control={control}
+                        render={({ field }) => <TimeInput label="Hora inicio" value={field.value} onChange={field.onChange} />}
+                    />
                 </div>
-                <button type="button" onClick={() => openScheduleModalEdit(item.id)} style={{ ...linkButtonStyle, alignSelf: 'center' }}>
-                    Editar todo el horario en vez de esta clase
-                </button>
-            </form>
-        </div>
+                <div style={{ flex: 1 }}>
+                    <Controller
+                        name="end"
+                        control={control}
+                        render={({ field }) => <TimeInput label="Hora término" value={field.value} onChange={field.onChange} />}
+                    />
+                </div>
+            </div>
+            <button type="button" onClick={() => openScheduleModalEdit(item.id)} style={linkButtonStyle}>
+                Editar todo el horario en vez de esta clase
+            </button>
+        </Modal>
     );
 }
 
@@ -148,72 +162,70 @@ function ScheduleSeriesModal({ editingSchedule, presetCategoryId }: { editingSch
     };
 
     return (
-        <div style={modalOverlayStyle}>
-            <form onSubmit={handleSubmit(onSubmit)} style={{ ...modalCardStyle, width: 340 }}>
-                <div style={modalHeaderStyle}>
-                    <div style={modalTitleStyle}>{editingSchedule ? 'Editar clase' : 'Agregar horario'}</div>
-                    <button type="button" onClick={closeScheduleModal} style={closeButtonStyle} aria-label="Cerrar">×</button>
-                </div>
-                <input type="hidden" {...register('categoryId')} />
-                <div>
-                    <div style={labelStyle}>Título (opcional)</div>
-                    <input {...register('title')} placeholder="Si se deja vacío, se usa el nombre de la categoría" style={inputStyle} />
-                </div>
-                <div>
-                    <div style={labelStyle}>Día de la semana</div>
-                    <select {...register('weekday', { valueAsNumber: true })} style={inputStyle}>
-                        {WEEKDAY_OPTIONS.map((w) => (
-                            <option key={w.value} value={w.value}>{w.label}</option>
-                        ))}
-                    </select>
-                </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                    <div style={{ flex: 1 }}>
-                        <div style={labelStyle}>Hora inicio</div>
-                        <Controller name="start" control={control} render={({ field }) => <TimeInput value={field.value} onChange={field.onChange} style={inputStyle} />} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                        <div style={labelStyle}>Hora término</div>
-                        <Controller name="end" control={control} render={({ field }) => <TimeInput value={field.value} onChange={field.onChange} style={inputStyle} />} />
-                    </div>
-                </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                    <div style={{ flex: 1 }}>
-                        <div style={labelStyle}>Fecha de inicio</div>
-                        <input type="date" {...register('startDate')} style={inputStyle} />
-                        {errors.startDate && <div style={errorTextStyle}>{errors.startDate.message}</div>}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                        <div style={labelStyle}>Fecha de término</div>
-                        <input type="date" {...register('endDate')} style={inputStyle} />
-                        {errors.endDate && <div style={errorTextStyle}>{errors.endDate.message}</div>}
-                    </div>
-                </div>
-                <label style={checkboxLabelStyle}>
-                    <input type="checkbox" {...register('biweekly')} />
-                    Repetir cada 2 semanas
-                </label>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 6 }}>
+        <Modal
+            asForm
+            width={340}
+            title={editingSchedule ? 'Editar clase' : 'Agregar horario'}
+            onClose={closeScheduleModal}
+            onSubmit={handleSubmit(onSubmit)}
+            footer={
+                <>
                     {editingSchedule ? (
-                        <button
-                            type="button"
+                        <Button
+                            variant="danger"
                             onClick={() =>
                                 deleteScheduleItem.mutate(editingSchedule.id, {
                                     onSuccess: closeScheduleModal,
                                     onError: (e) => window.alert(apiErrorMessage(e)),
                                 })
                             }
-                            style={dangerButtonStyle}
                         >
                             Eliminar
-                        </button>
+                        </Button>
                     ) : (
-                        <div />
+                        <span />
                     )}
-                    <button type="submit" style={primaryButtonStyle}>Guardar</button>
+                    <Button type="submit">Guardar</Button>
+                </>
+            }
+        >
+            <input type="hidden" {...register('categoryId')} />
+            <TextField
+                label="Título (opcional)"
+                placeholder="Si se deja vacío, se usa el nombre de la categoría"
+                {...register('title')}
+            />
+            <SelectField
+                label="Día de la semana"
+                options={WEEKDAY_OPTIONS.map((w) => ({ value: String(w.value), label: w.label }))}
+                {...register('weekday', { valueAsNumber: true })}
+            />
+            <div style={{ display: 'flex', gap: 'var(--pl-space-lg)' }}>
+                <div style={{ flex: 1 }}>
+                    <Controller
+                        name="start"
+                        control={control}
+                        render={({ field }) => <TimeInput label="Hora inicio" value={field.value} onChange={field.onChange} />}
+                    />
                 </div>
-            </form>
-        </div>
+                <div style={{ flex: 1 }}>
+                    <Controller
+                        name="end"
+                        control={control}
+                        render={({ field }) => <TimeInput label="Hora término" value={field.value} onChange={field.onChange} />}
+                    />
+                </div>
+            </div>
+            <div style={{ display: 'flex', gap: 'var(--pl-space-lg)' }}>
+                <div style={{ flex: 1 }}>
+                    <TextField label="Fecha de inicio" type="date" error={errors.startDate?.message} {...register('startDate')} />
+                </div>
+                <div style={{ flex: 1 }}>
+                    <TextField label="Fecha de término" type="date" error={errors.endDate?.message} {...register('endDate')} />
+                </div>
+            </div>
+            <Checkbox label="Repetir cada 2 semanas" {...register('biweekly')} />
+        </Modal>
     );
 }
 

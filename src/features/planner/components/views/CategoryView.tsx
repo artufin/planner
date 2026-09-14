@@ -6,13 +6,13 @@ import { useCategories } from '@/lib/api/categories';
 import { useSchedule } from '@/lib/api/schedule';
 import { useEvents } from '@/lib/api/events';
 import { useTasks, useUpdateTask } from '@/lib/api/tasks';
-import { colors, smallSecondaryButtonStyle } from '../../styles';
+import { Button, colors } from '@planner/ui';
 import { MONTH_NAMES, WEEKDAY_OPTIONS } from '../../constants';
 import { compareByDeadline, categoryById, deadlineInfo, inputToDate, scheduleTitleFor, solidColor, softColor, softTextColor } from '../../utils';
 import { useToday } from '../../useToday';
 
-const rowStyle = { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', border: `1px solid ${colors.border}`, borderRadius: 10, background: '#fff', cursor: 'pointer' } as const;
-const emptyBoxStyle = { padding: 14, textAlign: 'center' as const, color: 'oklch(60% 0.01 95)', fontSize: 12.5, border: `1px dashed ${colors.border}`, borderRadius: 10 };
+const rowStyle = { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', border: `1px solid ${colors.border}`, borderRadius: 10, background: colors.surface, cursor: 'pointer' } as const;
+const emptyBoxStyle = { padding: 14, textAlign: 'center' as const, color: colors.mutedLight, fontSize: 12.5, border: `1px dashed ${colors.border}`, borderRadius: 10 };
 const sectionHeaderStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 } as const;
 
 export default function CategoryView() {
@@ -88,7 +88,7 @@ export default function CategoryView() {
         <div style={{ padding: '28px 32px', maxWidth: 760 }}>
             <div style={sectionHeaderStyle}>
                 <div style={{ fontSize: 13.5, fontWeight: 700 }}>Horario</div>
-                <button onClick={() => openScheduleModalNew(selectedCategoryId)} style={smallSecondaryButtonStyle}>+ Agregar horario</button>
+                <Button variant="secondary" size="sm" onClick={() => openScheduleModalNew(selectedCategoryId)}>+ Agregar horario</Button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 26 }}>
                 {categorySchedule.map((s) => (
@@ -102,7 +102,7 @@ export default function CategoryView() {
 
             <div style={sectionHeaderStyle}>
                 <div style={{ fontSize: 13.5, fontWeight: 700 }}>Eventos</div>
-                <button onClick={() => openEventModalNew(selectedCategoryId)} style={smallSecondaryButtonStyle}>+ Agregar evento</button>
+                <Button variant="secondary" size="sm" onClick={() => openEventModalNew(selectedCategoryId)}>+ Agregar evento</Button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 26 }}>
                 {categoryEvents.map((e) => (
@@ -118,9 +118,7 @@ export default function CategoryView() {
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: colors.muted }}>{pendingCountLabel}</div>
-                <button onClick={() => openTaskModalNew(selectedCategoryId)} style={{ height: 28, padding: '0 12px', borderRadius: 7, border: 'none', background: colors.accent, color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
-                    + Nueva tarea
-                </button>
+                <Button size="sm" onClick={() => openTaskModalNew(selectedCategoryId)}>+ Nueva tarea</Button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {categoryTasks.map((t) => {
@@ -135,12 +133,12 @@ export default function CategoryView() {
                                     borderRadius: 5,
                                     flex: 'none',
                                     cursor: 'pointer',
-                                    border: `1.5px solid ${done ? solidColor(category.hue) : 'oklch(80% 0.005 95)'}`,
+                                    border: `1.5px solid ${done ? solidColor(category.hue) : colors.checkboxBorder}`,
                                     background: done ? solidColor(category.hue) : 'transparent',
                                 }}
                             />
                             <div onClick={() => openTaskModalEdit(t.id)} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
-                                <div style={{ fontSize: 13.5, fontWeight: 600, textDecoration: done ? 'line-through' : undefined, color: done ? colors.muted : 'oklch(25% 0.01 95)' }}>
+                                <div style={{ fontSize: 13.5, fontWeight: 600, textDecoration: done ? 'line-through' : undefined, color: done ? colors.muted : colors.fieldText }}>
                                     {t.title}
                                 </div>
                                 <div style={{ fontSize: 11.5, color: colors.muted, marginTop: 2, display: 'flex', gap: 6 }}>
@@ -156,7 +154,7 @@ export default function CategoryView() {
                         </div>
                     );
                 })}
-                {categoryTasks.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: 'oklch(60% 0.01 95)', fontSize: 13, border: `1px dashed ${colors.border}`, borderRadius: 10 }}>Sin tareas pendientes para esta categoría.</div>}
+                {categoryTasks.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: colors.mutedLight, fontSize: 13, border: `1px dashed ${colors.border}`, borderRadius: 10 }}>Sin tareas pendientes para esta categoría.</div>}
             </div>
         </div>
     );

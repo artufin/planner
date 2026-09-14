@@ -1,6 +1,11 @@
+/* App-level resets. Design values come from @planner/ui — imported before this
+   file in layout.tsx — so everything here reads its tokens rather than
+   restating them. */
+
 body {
     margin: 0;
-    font-family: var(--font-manrope), system-ui, -apple-system, sans-serif;
+    font-family: var(--pl-font-sans);
+    color: var(--pl-color-text);
     -webkit-font-smoothing: antialiased;
 }
 
@@ -9,12 +14,12 @@ body {
 }
 
 a {
-    color: oklch(56% 0.16 255);
+    color: var(--pl-color-accent);
     text-decoration: none;
 }
 
 a:hover {
-    color: oklch(48% 0.16 255);
+    color: var(--pl-color-accent-text);
 }
 
 ::-webkit-scrollbar {
@@ -24,5 +29,5 @@ a:hover {
 
 ::-webkit-scrollbar-thumb {
     background: oklch(88% 0.005 95);
-    border-radius: 4px;
+    border-radius: var(--pl-radius-xs);
 }

@@ -3,14 +3,12 @@
 import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Button, HuePicker, Modal, SelectField, TextField } from '@planner/ui';
 import { usePlannerStore } from '../../store';
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from '@/lib/api/categories';
 import { useGroups } from '@/lib/api/groups';
 import { apiErrorMessage } from '@/lib/api/http';
 import { categoryFormSchema, type CategoryFormValues } from '../../schemas';
-import { HUE_SWATCHES } from '../../constants';
-import { closeButtonStyle, dangerButtonStyle, inputStyle, labelStyle, modalCardStyle, modalHeaderStyle, modalOverlayStyle, modalTitleStyle, primaryButtonStyle } from '../../styles';
-import { solidColor } from '../../utils';
 
 export default function CategoryModal() {
     const { data: categories = [] } = useCategories();
@@ -53,47 +51,17 @@ export default function CategoryModal() {
     };
 
     return (
-        <div style={modalOverlayStyle}>
-            <form onSubmit={handleSubmit(onSubmit)} style={{ ...modalCardStyle, width: 340 }}>
-                <div style={modalHeaderStyle}>
-                    <div style={modalTitleStyle}>{editingCategory ? 'Editar categoría' : 'Nueva categoría'}</div>
-                    <button type="button" onClick={closeCategoryModal} style={closeButtonStyle} aria-label="Cerrar">×</button>
-                </div>
-                <div>
-                    <div style={labelStyle}>Nombre</div>
-                    <input {...register('name')} placeholder="ej. Álgebra Lineal" style={inputStyle} />
-                </div>
-                <div>
-                    <div style={labelStyle}>Grupo</div>
-                    <select value={groupId} onChange={(e) => setGroupId(e.target.value)} style={inputStyle}>
-                        {groups.map((g) => (
-                            <option key={g.id} value={g.id}>{g.name}</option>
-                        ))}
-                    </select>
-                </div>
-                <div>
-                    <div style={{ ...labelStyle, marginBottom: 6 }}>Color</div>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        {HUE_SWATCHES.map((h) => (
-                            <div
-                                key={h}
-                                onClick={() => setValue('hue', h)}
-                                style={{
-                                    width: 26,
-                                    height: 26,
-                                    borderRadius: 7,
-                                    cursor: 'pointer',
-                                    background: solidColor(h),
-                                    boxShadow: hue === h ? `0 0 0 2px #fff, 0 0 0 4px ${solidColor(h)}` : 'none',
-                                }}
-                            />
-                        ))}
-                    </div>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 6 }}>
+        <Modal
+            asForm
+            width={340}
+            title={editingCategory ? 'Editar categoría' : 'Nueva categoría'}
+            onClose={closeCategoryModal}
+            onSubmit={handleSubmit(onSubmit)}
+            footer={
+                <>
                     {editingCategory ? (
-                        <button
-                            type="button"
+                        <Button
+                            variant="danger"
                             onClick={() => {
                                 if (window.confirm('¿Eliminar esta categoría y todos sus horarios/eventos/tareas?')) {
                                     deleteCategory.mutate(editingCategory.id, {
@@ -102,16 +70,27 @@ export default function CategoryModal() {
                                     });
                                 }
                             }}
-                            style={dangerButtonStyle}
                         >
                             Eliminar
-                        </button>
+                        </Button>
                     ) : (
-                        <div />
+                        <span />
                     )}
-                    <button type="submit" style={primaryButtonStyle}>Guardar</button>
-                </div>
-            </form>
-        </div>
+                    <Button type="submit">Guardar</Button>
+                </>
+            }
+        >
+            <TextField label="Nombre" placeholder="ej. Álgebra Lineal" {...register('name')} />
+            <SelectField
+                label="Grupo"
+                value={groupId}
+                onChange={(e) => setGroupId(e.target.value)}
+                options={groups.map((g) => ({ value: g.id, label: g.name }))}
+            />
+            <div>
+                <div className="pl-field__label">Color</div>
+                <HuePicker value={hue} onChange={(h) => setValue('hue', h)} />
+            </div>
+        </Modal>
     );
 }

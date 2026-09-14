@@ -1,7 +1,7 @@
 'use client';
 
 import { usePlannerStore } from '../store';
-import { colors } from '../styles';
+import { colors } from '@planner/ui';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import MonthView from './views/MonthView';

@@ -5,7 +5,7 @@ import { usePlannerStore } from '../../store';
 import { useCategories } from '@/lib/api/categories';
 import { useEvents } from '@/lib/api/events';
 import { AllDayBar } from '../AllDayBar';
-import { colors } from '../../styles';
+import { colors } from '@planner/ui';
 import { NO_CATEGORY_LABEL, WEEKDAY_LABELS } from '../../constants';
 import {
     appliesAsSingleDayEvent,

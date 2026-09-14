@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from 'react';
 import { usePlannerStore } from '../store';
-import { colors } from '../styles';
+import { colors } from '@planner/ui';
 
 function navStyle(active: boolean): CSSProperties {
     return {

@@ -12,6 +12,13 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Compiled output of the design system — lint its source, not its build.
+    "packages/*/dist/**",
+    // design-sync working dirs: staged converter scripts, the generated bundle
+    // (which vendors React), and the sync inputs. None of it is app code.
+    ".ds-sync/**",
+    "ds-bundle/**",
+    ".design-sync/**",
   ]),
 ]);
 

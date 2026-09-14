@@ -1,7 +1,8 @@
 /** Shown wherever an event without a category needs a name. */
 export const NO_CATEGORY_LABEL = 'Sin categoría';
 
-export const HUE_SWATCHES = [255, 165, 70, 300, 20, 340, 190, 120];
+/** The category palette is the design system's — re-exported so callers keep one import. */
+export { HUE_SWATCHES } from '@planner/ui';
 
 export const WEEKDAY_LABELS = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
 

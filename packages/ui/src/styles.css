@@ -1,0 +1,726 @@
+/* ==========================================================================
+   Planner design system
+   Tokens first, then one block per component. Every value here is a value the
+   planner app already shipped — this stylesheet is an extraction, not a
+   redesign.
+   ========================================================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
+
+:root {
+    /* --- surfaces & text ------------------------------------------------ */
+    --pl-color-page-bg: oklch(98% 0.004 95);
+    --pl-color-surface: #fff;
+    --pl-color-sidebar-bg: oklch(96.5% 0.005 95);
+    --pl-color-chip-bg: oklch(95% 0.004 95);
+    --pl-color-control-bg: oklch(94% 0.004 95);
+
+    --pl-color-text: oklch(22% 0.01 95);
+    --pl-color-text-strong: oklch(30% 0.01 95);
+    --pl-color-text-nav: oklch(35% 0.01 95);
+    --pl-color-text-secondary: oklch(40% 0.01 95);
+    --pl-color-field-text: oklch(25% 0.01 95);
+    --pl-color-label: oklch(50% 0.01 95);
+    --pl-color-muted: oklch(55% 0.01 95);
+    --pl-color-muted-light: oklch(60% 0.01 95);
+    --pl-color-text-faint: oklch(68% 0.005 95);
+
+    /* --- lines ----------------------------------------------------------- */
+    --pl-color-border: oklch(89% 0.004 95);
+    --pl-color-border-strong: oklch(87% 0.004 95);
+    --pl-color-rule: oklch(85% 0.005 95);
+    --pl-color-checkbox-border: oklch(75% 0.01 95);
+
+    /* --- accent ---------------------------------------------------------- */
+    --pl-color-accent: oklch(56% 0.16 255);
+    --pl-color-accent-soft-bg: oklch(92% 0.02 255);
+    --pl-color-accent-text: oklch(48% 0.16 255);
+
+    /* --- status ---------------------------------------------------------- */
+    --pl-color-danger-border: oklch(90% 0.03 25);
+    --pl-color-danger-text: oklch(50% 0.15 25);
+    --pl-color-warn-text: oklch(52% 0.14 70);
+    --pl-color-now-line: oklch(58% 0.19 25);
+    --pl-color-tooltip-bg: oklch(20% 0.01 95);
+
+    /* --- category colors -------------------------------------------------
+       Defaults are the "no category" neutrals. Components set these three per
+       element from a hue; anything you style yourself can read them too. */
+    --pl-cat-solid: oklch(62% 0.012 95);
+    --pl-cat-soft: oklch(94% 0.004 95);
+    --pl-cat-text: oklch(40% 0.01 95);
+
+    /* --- typography ------------------------------------------------------ */
+    /* The planner app serves Manrope itself via next/font and exposes it as
+       --font-manrope; everywhere else the @import above supplies it. The
+       fallback inside var() matters: an undefined custom property with no
+       fallback makes the whole declaration invalid, which would drop the
+       typeface entirely outside the app. */
+    --pl-font-sans: var(--font-manrope, "Manrope"), system-ui, -apple-system, sans-serif;
+    --pl-text-2xs: 10px;
+    --pl-text-xs: 11px;
+    --pl-text-sm: 12px;
+    --pl-text-md: 13px;
+    --pl-text-lg: 14px;
+    --pl-text-xl: 15px;
+    --pl-weight-normal: 400;
+    --pl-weight-medium: 500;
+    --pl-weight-semibold: 600;
+    --pl-weight-bold: 700;
+
+    /* --- spacing --------------------------------------------------------- */
+    --pl-space-2xs: 2px;
+    --pl-space-xs: 4px;
+    --pl-space-sm: 6px;
+    --pl-space-md: 8px;
+    --pl-space-lg: 10px;
+    --pl-space-xl: 12px;
+    --pl-space-2xl: 14px;
+    --pl-space-3xl: 20px;
+    --pl-space-4xl: 24px;
+
+    /* --- radii ----------------------------------------------------------- */
+    --pl-radius-xs: 4px;
+    --pl-radius-sm: 6px;
+    --pl-radius-md: 7px;
+    --pl-radius-lg: 8px;
+    --pl-radius-xl: 10px;
+    --pl-radius-2xl: 12px;
+
+    /* --- elevation ------------------------------------------------------- */
+    --pl-shadow-raised: 0 1px 2px oklch(0% 0 0 / 0.06);
+    --pl-shadow-overlay: 0 12px 32px oklch(0% 0 0 / 0.18);
+}
+
+/* The base typeface reaches everything under the DS, not just its components:
+   markup you write yourself — headings, labels, layout glue — has to match the
+   components sitting next to it, and without this it falls back to the
+   browser's serif default. Components still name the family themselves below,
+   so one dropped into a host app that sets its own body font stays correct. */
+:root {
+    font-family: var(--pl-font-sans);
+}
+
+.pl-btn,
+.pl-icon-btn,
+.pl-field,
+.pl-input,
+.pl-checkbox,
+.pl-segmented,
+.pl-modal,
+.pl-card,
+.pl-section-divider,
+.pl-task-card,
+.pl-category-card,
+.pl-column-header,
+.pl-hue-picker,
+.pl-swatch {
+    font-family: var(--pl-font-sans);
+    box-sizing: border-box;
+}
+
+.pl-btn *,
+.pl-modal *,
+.pl-card *,
+.pl-task-card *,
+.pl-category-card *,
+.pl-column-header * {
+    box-sizing: border-box;
+}
+
+/* ===== Button ============================================================ */
+
+.pl-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--pl-space-sm);
+    border: 1px solid transparent;
+    border-radius: var(--pl-radius-md);
+    cursor: pointer;
+    white-space: nowrap;
+    line-height: 1;
+    text-decoration: none;
+}
+
+.pl-btn--md {
+    height: 34px;
+    padding: 0 var(--pl-space-2xl);
+    font-size: 12.5px;
+}
+
+.pl-btn--sm {
+    height: 28px;
+    padding: 0 var(--pl-space-xl);
+    font-size: var(--pl-text-sm);
+}
+
+.pl-btn--primary {
+    background: var(--pl-color-accent);
+    color: #fff;
+    font-weight: var(--pl-weight-bold);
+}
+
+.pl-btn--primary.pl-btn--md {
+    padding: 0 16px;
+}
+
+.pl-btn--primary:hover:not(:disabled) {
+    background: var(--pl-color-accent-text);
+}
+
+.pl-btn--secondary {
+    background: var(--pl-color-surface);
+    border-color: var(--pl-color-border);
+    color: var(--pl-color-text-secondary);
+    font-weight: var(--pl-weight-semibold);
+}
+
+.pl-btn--secondary:hover:not(:disabled) {
+    background: var(--pl-color-chip-bg);
+}
+
+.pl-btn--danger {
+    background: var(--pl-color-surface);
+    border-color: var(--pl-color-danger-border);
+    color: var(--pl-color-danger-text);
+    font-weight: var(--pl-weight-semibold);
+}
+
+.pl-btn--danger:hover:not(:disabled) {
+    background: oklch(97% 0.015 25);
+}
+
+.pl-btn--ghost {
+    background: transparent;
+    color: var(--pl-color-text-secondary);
+    font-weight: var(--pl-weight-semibold);
+}
+
+.pl-btn--ghost:hover:not(:disabled) {
+    background: var(--pl-color-chip-bg);
+}
+
+.pl-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ===== IconButton ======================================================== */
+
+.pl-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+}
+
+.pl-icon-btn--md {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--pl-radius-md);
+    font-size: var(--pl-text-lg);
+}
+
+.pl-icon-btn--sm {
+    width: 26px;
+    height: 26px;
+    border-radius: var(--pl-radius-sm);
+    font-size: var(--pl-text-lg);
+    font-weight: var(--pl-weight-bold);
+}
+
+.pl-icon-btn--xs {
+    width: 20px;
+    height: 20px;
+    border-radius: var(--pl-radius-sm);
+    font-size: var(--pl-text-xl);
+    font-weight: var(--pl-weight-bold);
+}
+
+.pl-icon-btn--outline {
+    background: var(--pl-color-surface);
+    border-color: var(--pl-color-border);
+}
+
+.pl-icon-btn--solid {
+    background: var(--pl-color-surface);
+}
+
+.pl-icon-btn--plain {
+    background: transparent;
+}
+
+.pl-icon-btn--tone-default {
+    color: var(--pl-color-text-secondary);
+}
+
+.pl-icon-btn--tone-muted {
+    color: var(--pl-color-muted);
+}
+
+.pl-icon-btn--tone-accent {
+    color: var(--pl-color-accent-text);
+}
+
+/* The modal close glyph runs larger than the rest of the xs/sm scale. */
+.pl-icon-btn--close {
+    font-size: 18px;
+    font-weight: var(--pl-weight-normal);
+}
+
+.pl-icon-btn--plain:hover:not(:disabled) {
+    background: var(--pl-color-chip-bg);
+}
+
+.pl-icon-btn--outline:hover:not(:disabled),
+.pl-icon-btn--solid:hover:not(:disabled) {
+    background: var(--pl-color-control-bg);
+}
+
+.pl-icon-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ===== Field shell (TextField / SelectField / TimeInput) ================= */
+
+.pl-field {
+    display: block;
+}
+
+.pl-field__label {
+    display: block;
+    font-size: 11.5px;
+    font-weight: var(--pl-weight-semibold);
+    color: var(--pl-color-label);
+    margin-bottom: 5px;
+}
+
+.pl-input {
+    width: 100%;
+    padding: 9px var(--pl-space-lg);
+    border: 1px solid var(--pl-color-border-strong);
+    border-radius: var(--pl-radius-lg);
+    font-size: var(--pl-text-md);
+    font-family: inherit;
+    color: var(--pl-color-field-text);
+    background: var(--pl-color-surface);
+}
+
+.pl-input:focus {
+    outline: none;
+    border-color: var(--pl-color-accent);
+    box-shadow: 0 0 0 3px var(--pl-color-accent-soft-bg);
+}
+
+.pl-input:disabled {
+    background: var(--pl-color-chip-bg);
+    color: var(--pl-color-muted);
+    cursor: not-allowed;
+}
+
+.pl-field__hint {
+    font-size: var(--pl-text-xs);
+    color: var(--pl-color-muted);
+    margin-top: var(--pl-space-xs);
+}
+
+.pl-field__error {
+    font-size: var(--pl-text-xs);
+    font-weight: var(--pl-weight-semibold);
+    color: var(--pl-color-danger-text);
+    margin-top: var(--pl-space-xs);
+}
+
+.pl-field--invalid .pl-input {
+    border-color: var(--pl-color-danger-border);
+}
+
+/* Standalone, a time field is sized for "HH:MM"; inside a field shell it
+   stretches like every other input. */
+.pl-input--time {
+    width: 72px;
+    text-align: center;
+}
+
+.pl-field .pl-input--time {
+    width: 100%;
+}
+
+/* ===== Checkbox ========================================================== */
+
+.pl-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: var(--pl-text-sm);
+    font-weight: var(--pl-weight-semibold);
+    color: var(--pl-color-text-secondary);
+    cursor: pointer;
+}
+
+.pl-checkbox--disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pl-checkbox__input {
+    accent-color: var(--pl-color-accent);
+    cursor: inherit;
+    margin: 0;
+}
+
+/* ===== SegmentedControl ================================================== */
+
+.pl-segmented {
+    display: inline-flex;
+    align-items: center;
+    background: var(--pl-color-control-bg);
+    border-radius: 9px;
+    padding: 3px;
+    gap: var(--pl-space-2xs);
+}
+
+.pl-segmented__option {
+    border: none;
+    border-radius: var(--pl-radius-md);
+    background: transparent;
+    color: var(--pl-color-label);
+    font-family: inherit;
+    font-weight: var(--pl-weight-bold);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.pl-segmented--md .pl-segmented__option {
+    height: 30px;
+    padding: 0 16px;
+    font-size: 12.5px;
+}
+
+.pl-segmented--sm .pl-segmented__option {
+    height: 26px;
+    padding: 0 var(--pl-space-xl);
+    font-size: var(--pl-text-sm);
+}
+
+.pl-segmented__option:hover {
+    color: var(--pl-color-text-strong);
+}
+
+.pl-segmented__option--active,
+.pl-segmented__option--active:hover {
+    background: var(--pl-color-surface);
+    color: var(--pl-color-text-strong);
+    box-shadow: var(--pl-shadow-raised);
+}
+
+/* ===== Modal ============================================================= */
+
+.pl-modal {
+    position: fixed;
+    inset: 0;
+    background: oklch(20% 0.01 95 / 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.pl-modal__card {
+    width: 380px;
+    max-width: calc(100% - 32px);
+    max-height: calc(100% - 32px);
+    overflow-y: auto;
+    background: var(--pl-color-surface);
+    border-radius: var(--pl-radius-2xl);
+    padding: var(--pl-space-3xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--pl-space-xl);
+    box-shadow: var(--pl-shadow-overlay);
+    color: var(--pl-color-text);
+    margin: 0;
+}
+
+.pl-modal__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--pl-space-lg);
+}
+
+.pl-modal__title {
+    font-size: var(--pl-text-xl);
+    font-weight: var(--pl-weight-bold);
+}
+
+.pl-modal__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--pl-space-md);
+    margin-top: var(--pl-space-sm);
+}
+
+/* ===== Card ============================================================== */
+
+.pl-card {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--pl-color-border);
+    border-radius: var(--pl-radius-xl);
+    background: var(--pl-color-surface);
+    color: var(--pl-color-text);
+}
+
+.pl-card--md {
+    padding: var(--pl-space-2xl);
+    gap: 3px;
+}
+
+.pl-card--sm {
+    padding: var(--pl-space-lg);
+    gap: 3px;
+}
+
+.pl-card--interactive {
+    cursor: pointer;
+}
+
+.pl-card--interactive:hover {
+    border-color: var(--pl-color-border-strong);
+    box-shadow: var(--pl-shadow-raised);
+}
+
+/* ===== SectionDivider ==================================================== */
+
+.pl-section-divider {
+    position: relative;
+}
+
+.pl-section-divider__rule {
+    border-top: 1px solid var(--pl-color-rule);
+}
+
+.pl-section-divider__label {
+    position: absolute;
+    top: -8px;
+    left: var(--pl-space-md);
+    background: var(--pl-color-page-bg);
+    padding: 0 var(--pl-space-md);
+    font-size: var(--pl-text-xs);
+    font-weight: var(--pl-weight-bold);
+    letter-spacing: 0.04em;
+    color: var(--pl-color-muted);
+}
+
+/* ===== Swatch ============================================================ */
+
+.pl-swatch {
+    flex: none;
+    background: var(--pl-cat-solid);
+    border: none;
+    padding: 0;
+}
+
+.pl-swatch--dot {
+    border-radius: 5px;
+}
+
+.pl-swatch--tile {
+    border-radius: var(--pl-radius-md);
+}
+
+.pl-swatch--bar {
+    width: 100%;
+    border-radius: 3px;
+}
+
+.pl-swatch--clickable {
+    cursor: pointer;
+}
+
+.pl-swatch--selected {
+    box-shadow: 0 0 0 2px var(--pl-color-surface), 0 0 0 4px var(--pl-cat-solid);
+}
+
+/* ===== HuePicker ========================================================= */
+
+.pl-hue-picker {
+    display: flex;
+    gap: var(--pl-space-md);
+    flex-wrap: wrap;
+}
+
+/* ===== TaskCard ========================================================== */
+
+.pl-task-card {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--pl-space-md);
+    padding: 9px var(--pl-space-lg);
+    border-radius: var(--pl-radius-lg);
+    border-left: 3px solid var(--pl-cat-solid);
+    background: var(--pl-cat-soft);
+}
+
+.pl-task-card--draggable {
+    cursor: grab;
+}
+
+.pl-task-card--done {
+    opacity: 0.5;
+}
+
+.pl-task-card__check {
+    width: 15px;
+    height: 15px;
+    margin-top: 1px;
+    border-radius: var(--pl-radius-xs);
+    flex: none;
+    cursor: pointer;
+    padding: 0;
+    border: 1.5px solid var(--pl-color-checkbox-border);
+    background: transparent;
+}
+
+.pl-task-card--done .pl-task-card__check {
+    border-color: var(--pl-cat-solid);
+    background: var(--pl-cat-solid);
+}
+
+.pl-task-card__body {
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+}
+
+.pl-task-card__row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--pl-space-sm);
+    font-size: var(--pl-text-sm);
+    font-weight: var(--pl-weight-semibold);
+    line-height: 1.3;
+    color: var(--pl-cat-text);
+}
+
+.pl-task-card--done .pl-task-card__row {
+    text-decoration: line-through;
+    color: var(--pl-color-label);
+}
+
+.pl-task-card__title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pl-task-card__deadline {
+    flex: none;
+    font-size: 10.5px;
+    font-weight: var(--pl-weight-semibold);
+    color: var(--pl-color-muted);
+}
+
+.pl-task-card__deadline--overdue {
+    color: var(--pl-color-danger-text);
+}
+
+.pl-task-card__deadline--soon {
+    color: var(--pl-color-warn-text);
+}
+
+/* ===== CategoryCard ====================================================== */
+
+.pl-category-card {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: var(--pl-space-2xl);
+    border: 1px solid var(--pl-color-border);
+    border-radius: var(--pl-radius-xl);
+    background: var(--pl-color-surface);
+    text-align: left;
+    color: var(--pl-color-text);
+    font-family: inherit;
+}
+
+.pl-category-card--clickable {
+    cursor: pointer;
+}
+
+.pl-category-card--clickable:hover {
+    border-color: var(--pl-color-border-strong);
+    box-shadow: var(--pl-shadow-raised);
+}
+
+.pl-category-card__strip {
+    width: 100%;
+    height: 4px;
+    border-radius: 3px;
+    background: var(--pl-cat-solid);
+    margin-bottom: var(--pl-space-sm);
+}
+
+.pl-category-card__name {
+    font-size: 14.5px;
+    font-weight: var(--pl-weight-bold);
+}
+
+.pl-category-card__meta {
+    font-size: 11.5px;
+    font-weight: var(--pl-weight-semibold);
+    margin-top: var(--pl-space-sm);
+    color: var(--pl-cat-text);
+}
+
+/* ===== ColumnHeader ====================================================== */
+
+.pl-column-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--pl-space-md) var(--pl-space-lg);
+    border-radius: var(--pl-radius-lg);
+    background: var(--pl-color-chip-bg);
+}
+
+.pl-column-header--active {
+    background: var(--pl-color-accent-soft-bg);
+}
+
+.pl-column-header__labels {
+    display: flex;
+    align-items: baseline;
+    gap: var(--pl-space-sm);
+}
+
+.pl-column-header__label {
+    font-size: var(--pl-text-xs);
+    font-weight: var(--pl-weight-bold);
+    letter-spacing: 0.04em;
+    color: var(--pl-color-muted);
+}
+
+.pl-column-header__value {
+    font-size: var(--pl-text-md);
+    font-weight: var(--pl-weight-bold);
+    color: var(--pl-color-text-strong);
+}
+
+.pl-column-header--active .pl-column-header__value {
+    color: var(--pl-color-accent-text);
+}

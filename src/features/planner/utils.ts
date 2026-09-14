@@ -1,23 +1,15 @@
 import type { Category, PlannerEvent, PlannerTask, ScheduleException, ScheduleItem } from '@/lib/api/types';
+import type { DeadlineTone } from '@planner/ui';
 import { MONTH_NAMES } from './constants';
 import type { ViewName } from './types';
+
+/** The category-color helpers live in the design system now — re-exported here so callers keep one import. */
+export { solidColor, softColor, softTextColor } from '@planner/ui';
+export type { DeadlineTone };
 
 /** A schedule slot's title, falling back to the category name when left blank. */
 export function scheduleTitleFor(s: Pick<ScheduleItem, 'title'>, category: Category): string {
     return s.title.trim() || category.name;
-}
-
-/** A null hue means "sin categoría" — rendered in neutral gray instead of a category color. */
-export function solidColor(hue: number | null): string {
-    return hue === null ? 'oklch(62% 0.012 95)' : `oklch(56% 0.16 ${hue})`;
-}
-
-export function softColor(hue: number | null): string {
-    return hue === null ? 'oklch(94% 0.004 95)' : `oklch(93% 0.035 ${hue})`;
-}
-
-export function softTextColor(hue: number | null): string {
-    return hue === null ? 'oklch(40% 0.01 95)' : `oklch(38% 0.1 ${hue})`;
 }
 
 export function sameDate(a: Date, b: Date): boolean {
@@ -162,8 +154,6 @@ export function tasksForDate(tasks: PlannerTask[], categories: Category[], dateI
 export function backlogTasks(tasks: PlannerTask[], categories: Category[]): PlannerTask[] {
     return tasks.filter((t) => t.assignedDate === null && categoryById(categories, t.categoryId));
 }
-
-export type DeadlineTone = 'overdue' | 'soon' | 'normal';
 
 /** Short "12 ago"-style label plus an urgency tone, for surfacing a task's deadline on its card. */
 export function deadlineInfo(deadline: string, today: Date): { label: string; tone: DeadlineTone } {
