@@ -1,6 +1,7 @@
 {
   "pkg": "@planner/ui",
   "globalName": "PlannerUI",
+  "projectId": "9ebc3cad-fc22-4abd-a1c2-da247bfe3601",
   "shape": "package",
   "buildCmd": "node packages/ui/build.mjs",
   "srcDir": "src",
