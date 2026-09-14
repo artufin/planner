@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,21 +9,80 @@ datasource db {
   provider = "postgresql"
 }
 
-model Event {
-  id             String    @id @default(cuid())
-  title          String
-  startsAt       DateTime
-  endsAt         DateTime
-  allDay         Boolean   @default(false)
-  description    String?
-  kind           EventKind
-  recurrenceRule String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+model Group {
+  id         String     @id @default(uuid())
+  name       String
+  categories Category[]
 }
 
-enum EventKind {
-  meeting
-  appointment
-  reminder
+model Category {
+  id      String  @id @default(uuid())
+  groupId String?
+  group   Group?  @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  name    String
+  hue     Int
+
+  schedule ScheduleItem[]
+  events   PlannerEvent[]
+  tasks    PlannerTask[]
+}
+
+model ScheduleItem {
+  id         String    @id @default(uuid())
+  categoryId String
+  category   Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  title      String
+  weekday    Int // 0=domingo ... 6=sábado
+  start      DateTime  @db.Time
+  end        DateTime  @db.Time
+  startDate  DateTime  @db.Date
+  endDate    DateTime? @db.Date
+  interval   Int // 1 = cada semana, 2 = cada 2 semanas
+
+  exceptions ScheduleException[]
+}
+
+model ScheduleException {
+  id         String       @id @default(uuid())
+  scheduleId String
+  schedule   ScheduleItem @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  date       DateTime     @db.Date
+  cancelled  Boolean      @default(false)
+  title      String?
+  start      DateTime?    @db.Time
+  end        DateTime?    @db.Time
+
+  @@unique([scheduleId, date])
+}
+
+model PlannerEvent {
+  id         String    @id @default(uuid())
+  categoryId String
+  category   Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  title      String
+  startDate  DateTime  @db.Date
+  endDate    DateTime  @db.Date
+  start      DateTime? @db.Time
+  end        DateTime? @db.Time
+
+  tasks PlannerTask[]
+}
+
+model PlannerTask {
+  id           String        @id @default(uuid())
+  categoryId   String
+  category     Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  eventId      String?
+  event        PlannerEvent? @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  title        String
+  assignedDate DateTime?     @db.Date
+  deadline     DateTime?     @db.Date
+  start        DateTime?     @db.Time
+  end          DateTime?     @db.Time
+  done         Boolean       @default(false)
+}
+
+model TimeDivision {
+  id    String   @id @default(uuid())
+  value DateTime @unique @db.Time
 }
