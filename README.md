@@ -64,7 +64,7 @@ iteration reintroduces server-backed sync, but they're currently dead weight:
 
 `@fullcalendar/*` (react, daygrid, timegrid, interaction) was removed
 outright rather than kept dead: the mockup's month and week grids are fully
-custom (multi-day event bars with hover tooltips, a week view with
+custom (a week view with an untimed/deadline strip and
 user-configurable, non-uniform time divisions, independent zoom, and
 per-occurrence schedule exceptions) which doesn't map cleanly onto
 FullCalendar's plugin model, so the calendar views were hand-built instead

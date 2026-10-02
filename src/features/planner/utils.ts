@@ -54,13 +54,9 @@ export function eventCoversDate(ev: PlannerEvent, dateIso: string): boolean {
     return dateIso >= ev.startDate && dateIso <= ev.endDate;
 }
 
-export function isMultiDay(ev: PlannerEvent): boolean {
-    return ev.startDate !== ev.endDate;
-}
-
-/** A multi-day event with real start and end times (crosses midnight) — excluded from all-day banners, shown as a normal item on its start day only. */
+/** An event with real start and end times that crosses midnight (`endDate` is the next day) — the only multi-day shape that exists; the week view draws it on both days. */
 export function isOvernightEvent(ev: PlannerEvent): boolean {
-    return isMultiDay(ev) && ev.start !== null && ev.end !== null;
+    return ev.startDate !== ev.endDate && ev.start !== null && ev.end !== null;
 }
 
 /** An event with only an end time (no start) reads as a due time rather than a scheduled block — that's what marks it as a deliverable/deadline. */
@@ -68,10 +64,9 @@ export function isDeadlineEvent(ev: Pick<PlannerEvent, 'start' | 'end'>): boolea
     return ev.start === null && ev.end !== null;
 }
 
-/** Whether `ev` should render as a normal (non-banner) single-day item on the given date — true for same-day events, and for an overnight event's start day only. */
-export function appliesAsSingleDayEvent(ev: PlannerEvent, dateIso: string): boolean {
-    if (!isMultiDay(ev)) return true;
-    return isOvernightEvent(ev) && ev.startDate === dateIso;
+/** An event with neither start nor end time has no place on the hour grid — the week view lists it in the strip above. */
+export function isUntimedEvent(ev: Pick<PlannerEvent, 'start' | 'end'>): boolean {
+    return ev.start === null && ev.end === null;
 }
 
 export interface RecurringInstance {

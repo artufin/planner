@@ -6,7 +6,6 @@ import { useCategories } from '@/lib/api/categories';
 import { useEvents } from '@/lib/api/events';
 import { useSchedule, useScheduleExceptions } from '@/lib/api/schedule';
 import { useTimeDivisions } from '@/lib/api/timeDivisions';
-import { AllDayBar, type AllDayBarSegment } from '../AllDayBar';
 import { colors } from '@planner/ui';
 import { NO_CATEGORY_LABEL, WEEKDAY_LABELS } from '../../constants';
 import {
@@ -14,8 +13,9 @@ import {
     dateToInput,
     eventsForDate,
     getWeekStart,
-    isMultiDay,
+    isDeadlineEvent,
     isOvernightEvent,
+    isUntimedEvent,
     recurringForRange,
     sameDate,
     scheduleTitleFor,
@@ -42,6 +42,17 @@ interface DayColumnEvent {
     onClick?: () => void;
 }
 
+/** A chip in the strip above the hour grid: an event with no start time (untimed, or deadline-shaped with only an end time). */
+interface StripItem {
+    key: string;
+    eventId: string;
+    title: string;
+    hue: number | null;
+    /** Hover tooltip: the category name, plus the location when the event has one. */
+    categoryName: string;
+    location: string | null;
+}
+
 interface DayColumn {
     label: string;
     dayNum: number;
@@ -63,7 +74,6 @@ export default function WeekView() {
     const openScheduleModalOccurrence = usePlannerStore((s) => s.openScheduleModalOccurrence);
     const today = useToday();
     const nowMinutes = useNowMinutes();
-    const [hoverBarId, setHoverBarId] = useState<string | null>(null);
     const [hoverEventKey, setHoverEventKey] = useState<string | null>(null);
 
     const weekStart = useMemo(() => getWeekStart(today, weekOffset), [today, weekOffset]);
@@ -72,34 +82,28 @@ export default function WeekView() {
         [schedule, categories, weekStart, scheduleExceptions],
     );
 
-    const weekAllDay = useMemo(() => {
-        const out: { bars: AllDayBarSegment[] }[] = [];
+    const weekStrip = useMemo(() => {
+        const out: StripItem[][] = [];
         for (let i = 0; i < 7; i++) {
             const dt = new Date(weekStart);
             dt.setDate(weekStart.getDate() + i);
             const dateIso = dateToInput(dt.getFullYear(), dt.getMonth(), dt.getDate());
-            const multiEvents = eventsForDate(events, categories, dateIso).filter(
-                (ev) => isMultiDay(ev) && !isOvernightEvent(ev),
-            );
-            out.push({
-                bars: multiEvents.map((ev) => {
-                    const c = categoryById(categories, ev.categoryId);
-                    const isStart = ev.startDate === dateIso;
-                    const isEnd = ev.endDate === dateIso;
-                    return {
-                        id: ev.id,
+            out.push(
+                eventsForDate(events, categories, dateIso)
+                    .filter((ev) => isUntimedEvent(ev) || isDeadlineEvent(ev))
+                    .map((ev) => ({
+                        key: `strip-${ev.id}`,
+                        eventId: ev.id,
                         title: ev.title,
-                        subtitle: [c?.name ?? NO_CATEGORY_LABEL, ev.location].filter(Boolean).join(' · '),
-                        hue: c?.hue ?? null,
-                        roundLeft: isStart || i === 0,
-                        roundRight: isEnd || i === 6,
-                    };
-                }),
-            });
+                        hue: categoryById(categories, ev.categoryId)?.hue ?? null,
+                        categoryName: categoryById(categories, ev.categoryId)?.name ?? NO_CATEGORY_LABEL,
+                        location: ev.location,
+                    })),
+            );
         }
         return out;
     }, [weekStart, events, categories]);
-    const hasAllDayEvents = weekAllDay.some((d) => d.bars.length > 0);
+    const hasStripItems = weekStrip.some((d) => d.length > 0);
 
     const weekDays: DayColumn[] = useMemo(() => {
         const out: DayColumn[] = [];
@@ -107,8 +111,7 @@ export default function WeekView() {
             const dt = new Date(weekStart);
             dt.setDate(weekStart.getDate() + i);
             const dateIso = dateToInput(dt.getFullYear(), dt.getMonth(), dt.getDate());
-            const dayAllEvents = eventsForDate(events, categories, dateIso);
-            const singleEvents = dayAllEvents.filter((ev) => !isMultiDay(ev) || isOvernightEvent(ev));
+            const singleEvents = eventsForDate(events, categories, dateIso).filter((ev) => !isUntimedEvent(ev));
             const dayRecurring = recurringWeek.filter((ev) => ev.y === dt.getFullYear() && ev.m === dt.getMonth() && ev.d === dt.getDate());
             const dayEvents = [...dayRecurring, ...singleEvents];
 
@@ -155,9 +158,10 @@ export default function WeekView() {
                         timeLabel = `→ ${ev.end}`;
                     }
                 } else {
-                    startMin = hasStart ? timeToMinutes(ev.start) : 8 * 60;
-                    endMin = hasEnd ? timeToMinutes(ev.end) : hasStart ? startMin + 40 : 8 * 60 + 40;
-                    timeLabel = !hasStart && !hasEnd ? 'Sin horario' : hasStart && hasEnd ? `${ev.start}–${ev.end}` : hasStart ? (ev.start ?? '') : `hasta ${ev.end}`;
+                    /** Untimed events never reach here (they live in the strip) and end-only ones returned above, so every block has a start. */
+                    startMin = timeToMinutes(ev.start);
+                    endMin = hasEnd ? timeToMinutes(ev.end) : startMin + 40;
+                    timeLabel = hasEnd ? `${ev.start}–${ev.end}` : (ev.start ?? '');
                 }
                 const top = Math.max(0, (startMin / 60) * weekZoom);
                 const height = Math.max(20, ((endMin - startMin) / 60) * weekZoom - 2);
@@ -213,25 +217,63 @@ export default function WeekView() {
                 ))}
             </div>
 
-            {hasAllDayEvents && (
+            {hasStripItems && (
                 <div style={{ display: 'grid', gridTemplateColumns: gridCols, borderBottom: `1px solid ${colors.border}`, padding: '5px 0' }}>
                     <div />
-                    {weekAllDay.map((day, i) => (
-                        <div key={i} style={{ padding: '0 3px', display: 'flex', flexDirection: 'column', gap: 3 }}>
-                            {day.bars.map((b) => (
-                                <AllDayBar
-                                    key={b.id}
-                                    bar={b}
-                                    hovered={hoverBarId === b.id}
-                                    onClick={() => openEventModalEdit(b.id)}
-                                    onMouseEnter={() => setHoverBarId(b.id)}
-                                    onMouseLeave={() => setHoverBarId(null)}
-                                    outerStyle={{
-                                        position: 'relative',
-                                        height: 8,
-                                        margin: `0 ${b.roundLeft ? '0' : '-3px'} 0 ${b.roundLeft ? '0' : '-3px'}`,
-                                    }}
-                                />
+                    {weekStrip.map((items, i) => (
+                        <div key={i} style={{ padding: '0 3px', display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+                            {items.map((item) => (
+                                <div key={item.key} style={{ position: 'relative' }}>
+                                    <div
+                                        onClick={() => openEventModalEdit(item.eventId)}
+                                        onMouseEnter={() => setHoverEventKey(item.key)}
+                                        onMouseLeave={() => setHoverEventKey(null)}
+                                        style={{
+                                            background: softColor(item.hue),
+                                            color: softTextColor(item.hue),
+                                            borderLeft: `3px solid ${solidColor(item.hue)}`,
+                                            borderRadius: 6,
+                                            padding: '3px 6px',
+                                            fontSize: 10.5,
+                                            fontWeight: 700,
+                                            lineHeight: 1.25,
+                                            cursor: 'pointer',
+                                            display: '-webkit-box',
+                                            WebkitLineClamp: 2,
+                                            WebkitBoxOrient: 'vertical',
+                                            overflow: 'hidden',
+                                        }}
+                                    >
+                                        {item.title}
+                                    </div>
+                                    {hoverEventKey === item.key && (
+                                        <div
+                                            style={{
+                                                position: 'absolute',
+                                                left: 0,
+                                                top: '100%',
+                                                marginTop: 4,
+                                                maxWidth: '100%',
+                                                background: colors.tooltipBg,
+                                                color: '#fff',
+                                                fontSize: 10,
+                                                fontWeight: 600,
+                                                lineHeight: 1.35,
+                                                padding: '3px 7px',
+                                                borderRadius: 5,
+                                                pointerEvents: 'none',
+                                                zIndex: 5,
+                                            }}
+                                        >
+                                            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.categoryName}</div>
+                                            {item.location && (
+                                                <div style={{ opacity: 0.7, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {item.location}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             ))}
                         </div>
                     ))}

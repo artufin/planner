@@ -8,7 +8,7 @@ A block of one category color. Three shapes cover everywhere the planner shows a
 
 - `dot` — the inline marker beside a category name in a header or a list (14px).
 - `tile` — a cell in the hue picker (26px).
-- `bar` — a full-width strip, as across the top of a `CategoryCard` or on a multi-day event (4px tall).
+- `bar` — a full-width strip, as across the top of a `CategoryCard` (4px tall).
 
 `hue` is the category hue; `null` renders the neutral gray used for "sin categoría".
 

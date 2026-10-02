@@ -97,9 +97,13 @@ Deleting a `ScheduleItem` cascades to its exceptions — model as
 
 ### PlannerEvent
 
-`types.ts:54`. A calendar event, possibly spanning multiple days
-(`isMultiDay`, `utils.ts:59-61`). No `deadline` field — deadline-ness is
-derived from shape, see below.
+`types.ts:54`. A calendar event. Multi-day banners/bars were discarded;
+the only multi-day shape left is the overnight event (real start and end
+times with the end earlier than the start, so `endDate` = `startDate` + 1 —
+`isOvernightEvent`, `utils.ts`), which the week view draws on both days.
+Every other event has `endDate` = `startDate`, and the month view shows
+overnight events on their start day only. No `deadline` field —
+deadline-ness is derived from shape, see below.
 
 | field | type | notes |
 |---|---|---|
@@ -114,11 +118,12 @@ derived from shape, see below.
 Both start and end can independently be unset. An event with no start
 but a set end (`isDeadlineEvent`, `utils.ts:69-71`) reads as a due time
 rather than a scheduled block — it renders as a thin marker in the week
-view ("franja"), and it's the signal `EventModal` uses to offer "Crear
+view's hour grid and also as a chip in the strip above it, and it's the signal `EventModal` uses to offer "Crear
 tarea" on creation (`store.ts:294-329` `saveEvent`): checking it spawns a
 linked `PlannerTask` in the backlog whose `deadline` is copied from the
-event's own date. With neither start nor end set, the event is
-untimed/all-day-style.
+event's own date. With neither start nor end set, the event is untimed:
+it has no place on the hour grid and shows only as a chip in the week
+view's strip.
 
 ### PlannerTask
 
