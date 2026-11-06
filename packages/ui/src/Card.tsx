@@ -9,7 +9,7 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
     children?: ReactNode;
 }
 
-/** The planner's plain white surface: 1px border, 10px radius, flex column. */
+/** A white sheet lying on the page: hairline border, small radius, ink-tinted shadow, flex column. */
 export function Card({ padding = 'md', interactive = false, className, children, ...rest }: CardProps) {
     return (
         <div

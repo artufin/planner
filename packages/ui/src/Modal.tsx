@@ -1,4 +1,4 @@
-import type { FormEventHandler, ReactNode } from 'react';
+import { useEffect, useId, useRef, type FormEventHandler, type ReactNode } from 'react';
 import { cx } from './tokens.js';
 import { IconButton } from './IconButton.js';
 
@@ -16,15 +16,22 @@ export interface ModalProps {
     onSubmit?: FormEventHandler<HTMLFormElement>;
     /** Clicking the dimmed backdrop closes the modal. */
     closeOnOverlayClick?: boolean;
+    /** Pressing Escape closes the modal. On by default. */
+    closeOnEscape?: boolean;
     closeLabel?: string;
     className?: string;
     children?: ReactNode;
 }
 
+const FOCUSABLE_FIELD = 'input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled)';
+
 /**
- * A centered card over a dimmed backdrop, with a title row and close button.
- * Body children are laid out in a 12px flex column, so form rows stack without
- * any spacing of their own.
+ * A sheet of notebook paper over a dimmed backdrop, with a title row and close
+ * button. Body children are laid out in a 12px flex column, so form rows stack
+ * without any spacing of their own.
+ *
+ * On open it moves focus to the first field (or the sheet itself), closes on
+ * Escape, and hands focus back to whatever had it when it closes.
  */
 export function Modal({
     open = true,
@@ -35,16 +42,52 @@ export function Modal({
     asForm = false,
     onSubmit,
     closeOnOverlayClick = true,
+    closeOnEscape = true,
     closeLabel = 'Cerrar',
     className,
     children,
 }: ModalProps) {
+    const titleId = useId();
+    const cardRef = useRef<HTMLElement | null>(null);
+    const onCloseRef = useRef(onClose);
+
+    useEffect(() => {
+        onCloseRef.current = onClose;
+    }, [onClose]);
+
+    useEffect(() => {
+        if (!open) return;
+        const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        const card = cardRef.current;
+        if (card && !card.contains(document.activeElement)) {
+            const field = card.querySelector<HTMLElement>(FOCUSABLE_FIELD);
+            (field ?? card).focus({ preventScroll: true });
+        }
+        return () => {
+            if (previouslyFocused?.isConnected) previouslyFocused.focus({ preventScroll: true });
+        };
+    }, [open]);
+
+    useEffect(() => {
+        if (!open || !closeOnEscape) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && !e.defaultPrevented) {
+                e.preventDefault();
+                onCloseRef.current();
+            }
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [open, closeOnEscape]);
+
     if (!open) return null;
 
     const body = (
         <>
             <div className="pl-modal__header">
-                <div className="pl-modal__title">{title}</div>
+                <h2 className="pl-modal__title" id={titleId}>
+                    {title}
+                </h2>
                 <IconButton size="sm" variant="plain" tone="muted" close aria-label={closeLabel} onClick={onClose}>
                     ×
                 </IconButton>
@@ -62,14 +105,26 @@ export function Modal({
             className="pl-modal"
             role="dialog"
             aria-modal="true"
+            aria-labelledby={titleId}
             onClick={closeOnOverlayClick ? (e) => { if (e.target === e.currentTarget) onClose(); } : undefined}
         >
             {asForm ? (
-                <form className={cardClass} style={cardStyle} onSubmit={onSubmit}>
+                <form
+                    ref={(el) => { cardRef.current = el; }}
+                    className={cardClass}
+                    style={cardStyle}
+                    onSubmit={onSubmit}
+                    tabIndex={-1}
+                >
                     {body}
                 </form>
             ) : (
-                <div className={cardClass} style={cardStyle}>
+                <div
+                    ref={(el) => { cardRef.current = el; }}
+                    className={cardClass}
+                    style={cardStyle}
+                    tabIndex={-1}
+                >
                     {body}
                 </div>
             )}

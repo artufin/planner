@@ -1,0 +1,26 @@
+/* The consequence, written plainly; the two ways out sit together on the right. */
+
+.body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pl-space-md);
+}
+
+.body p {
+    margin: 0;
+    font-size: var(--pl-text-lg);
+    line-height: 1.5;
+    color: var(--pl-color-text-secondary);
+}
+
+.body strong {
+    font-weight: var(--pl-weight-semibold);
+    color: var(--pl-color-ink);
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--pl-space-md);
+    width: 100%;
+}

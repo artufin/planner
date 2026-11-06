@@ -1,30 +1,20 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, Checkbox, Modal, SelectField, TextField, TimeInput } from '@planner/ui';
 import { usePlannerStore } from '../../store';
 import { useCategories } from '@/lib/api/categories';
 import { useSchedule, useScheduleExceptions, useCreateScheduleItem, useUpdateScheduleItem, useDeleteScheduleItem, useUpsertScheduleException } from '@/lib/api/schedule';
-import { apiErrorMessage } from '@/lib/api/http';
+import { toast } from '../../toast/toast';
+import ConfirmDialog from '../ConfirmDialog';
+import { plural } from '../views/subjectInsights';
 import { scheduleFormSchema, scheduleOccurrenceFormSchema, type ScheduleFormValues, type ScheduleOccurrenceFormValues } from '../../schemas';
 import { MONTH_NAMES, WEEKDAY_OPTIONS } from '../../constants';
 import { categoryById, dateToInput, inputToDate, scheduleTitleFor } from '../../utils';
 import type { ScheduleItem } from '@/lib/api/types';
-
-const linkButtonStyle = {
-    alignSelf: 'center',
-    border: 'none',
-    background: 'none',
-    padding: 0,
-    fontSize: 11.5,
-    fontWeight: 600,
-    fontFamily: 'inherit',
-    color: 'var(--pl-color-label)',
-    textDecoration: 'underline',
-    cursor: 'pointer',
-} as const;
+import s from './modal.module.css';
 
 function ScheduleOccurrenceModal({ item, date }: { item: ScheduleItem; date: string }) {
     const { data: categories = [] } = useCategories();
@@ -52,7 +42,7 @@ function ScheduleOccurrenceModal({ item, date }: { item: ScheduleItem; date: str
         defaultValues,
     });
 
-    const onError = (e: unknown) => window.alert(apiErrorMessage(e));
+    const onError = toast.error;
 
     const onSubmit = (values: ScheduleOccurrenceFormValues) =>
         upsertException.mutate(
@@ -81,35 +71,38 @@ function ScheduleOccurrenceModal({ item, date }: { item: ScheduleItem; date: str
                 </>
             }
         >
-            <div style={{ fontSize: 11.5, color: 'var(--pl-color-muted)', marginTop: -8 }}>
-                {d} de {MONTH_NAMES[m]} de {y} · solo esta clase
-            </div>
+            <p className={s.subtitle}>
+                Cambios solo para la clase del <strong>{d} de {MONTH_NAMES[m]} de {y}</strong>.
+            </p>
             <TextField
-                label="Título (opcional)"
+                label="Título"
+                optional
                 placeholder="Si se deja vacío, se usa el nombre de la categoría"
                 {...register('title')}
             />
-            <div style={{ display: 'flex', gap: 'var(--pl-space-lg)' }}>
-                <div style={{ flex: 1 }}>
-                    <Controller
-                        name="start"
-                        control={control}
-                        render={({ field }) => <TimeInput label="Hora inicio" value={field.value} onChange={field.onChange} />}
-                    />
-                </div>
-                <div style={{ flex: 1 }}>
-                    <Controller
-                        name="end"
-                        control={control}
-                        render={({ field }) => <TimeInput label="Hora término" value={field.value} onChange={field.onChange} />}
-                    />
-                </div>
+            <div className={s.row}>
+                <Controller
+                    name="start"
+                    control={control}
+                    render={({ field }) => <TimeInput label="Inicio" value={field.value} onChange={field.onChange} />}
+                />
+                <Controller
+                    name="end"
+                    control={control}
+                    render={({ field }) => <TimeInput label="Término" value={field.value} onChange={field.onChange} />}
+                />
             </div>
-            <button type="button" onClick={() => openScheduleModalEdit(item.id)} style={linkButtonStyle}>
+            <button type="button" onClick={() => openScheduleModalEdit(item.id)} className={s.linkButton}>
                 Editar todo el horario en vez de esta clase
             </button>
         </Modal>
     );
+}
+
+/** "cada lunes, de 09:00 a 10:30" — or "cada dos lunes" for a biweekly class. */
+function seriesWhen(item: ScheduleItem): string {
+    const weekday = WEEKDAY_OPTIONS.find((w) => w.value === item.weekday)?.label.toLowerCase() ?? '';
+    return `${item.interval === 2 ? 'cada dos' : 'cada'} ${weekday}, de ${item.start} a ${item.end}`;
 }
 
 function ScheduleSeriesModal({ editingSchedule, presetCategoryId }: { editingSchedule: ScheduleItem | undefined; presetCategoryId: string | null }) {
@@ -118,6 +111,11 @@ function ScheduleSeriesModal({ editingSchedule, presetCategoryId }: { editingSch
     const createScheduleItem = useCreateScheduleItem();
     const updateScheduleItem = useUpdateScheduleItem();
     const deleteScheduleItem = useDeleteScheduleItem();
+    const { data: scheduleExceptions = [] } = useScheduleExceptions();
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
+    const editingCategory = editingSchedule ? categoryById(categories, editingSchedule.categoryId) : undefined;
+    const editingTitle = editingSchedule ? (editingCategory ? scheduleTitleFor(editingSchedule, editingCategory) : editingSchedule.title) : '';
+    const changedOccurrences = editingSchedule ? scheduleExceptions.filter((e) => e.scheduleId === editingSchedule.id).length : 0;
 
     const defaultValues = useMemo<ScheduleFormValues>(() => {
         if (editingSchedule) {
@@ -143,7 +141,7 @@ function ScheduleSeriesModal({ editingSchedule, presetCategoryId }: { editingSch
     });
 
     const onSubmit = (values: ScheduleFormValues) => {
-        const onError = (e: unknown) => window.alert(apiErrorMessage(e));
+        const onError = toast.error;
         const payload = {
             categoryId: values.categoryId,
             title: values.title.trim(),
@@ -162,70 +160,90 @@ function ScheduleSeriesModal({ editingSchedule, presetCategoryId }: { editingSch
     };
 
     return (
-        <Modal
-            asForm
-            width={340}
-            title={editingSchedule ? 'Editar clase' : 'Agregar horario'}
-            onClose={closeScheduleModal}
-            onSubmit={handleSubmit(onSubmit)}
-            footer={
-                <>
-                    {editingSchedule ? (
-                        <Button
-                            variant="danger"
-                            onClick={() =>
-                                deleteScheduleItem.mutate(editingSchedule.id, {
-                                    onSuccess: closeScheduleModal,
-                                    onError: (e) => window.alert(apiErrorMessage(e)),
-                                })
-                            }
-                        >
-                            Eliminar
-                        </Button>
-                    ) : (
-                        <span />
+        <>
+            <Modal
+                asForm
+                width={340}
+                closeOnEscape={!confirmingDelete}
+                title={editingSchedule ? 'Editar clase' : 'Agregar horario'}
+                onClose={closeScheduleModal}
+                onSubmit={handleSubmit(onSubmit)}
+                footer={
+                    <>
+                        {editingSchedule ? (
+                            <Button variant="danger" onClick={() => setConfirmingDelete(true)}>
+                                Eliminar
+                            </Button>
+                        ) : (
+                            <span />
+                        )}
+                        <Button type="submit">Guardar</Button>
+                    </>
+                }
+            >
+                <input type="hidden" {...register('categoryId')} />
+                <TextField
+                    label="Título"
+                    optional
+                    placeholder="Si se deja vacío, se usa el nombre de la categoría"
+                    {...register('title')}
+                />
+                <div className={s.group} role="group" aria-labelledby="schedule-week">
+                    <p className={s.groupTitle} id="schedule-week">Horario</p>
+                    <SelectField
+                        label="Día"
+                        options={WEEKDAY_OPTIONS.map((w) => ({ value: String(w.value), label: w.label }))}
+                        {...register('weekday', { valueAsNumber: true })}
+                    />
+                    <div className={s.row}>
+                        <Controller
+                            name="start"
+                            control={control}
+                            render={({ field }) => <TimeInput label="Inicio" value={field.value} onChange={field.onChange} />}
+                        />
+                        <Controller
+                            name="end"
+                            control={control}
+                            render={({ field }) => <TimeInput label="Término" value={field.value} onChange={field.onChange} />}
+                        />
+                    </div>
+                    <Checkbox label="Repetir cada 2 semanas" {...register('biweekly')} />
+                </div>
+                <div className={s.group} role="group" aria-labelledby="schedule-span">
+                    <p className={s.groupTitle} id="schedule-span">Durante</p>
+                    <div className={s.row}>
+                        <TextField label="Desde" type="date" error={errors.startDate?.message} {...register('startDate')} />
+                        <TextField
+                            label="Hasta"
+                            optional
+                            type="date"
+                            hint="Vacía si no tiene fin."
+                            error={errors.endDate?.message}
+                            {...register('endDate')}
+                        />
+                    </div>
+                </div>
+            </Modal>
+            {confirmingDelete && editingSchedule && (
+                <ConfirmDialog
+                    title="Eliminar horario"
+                    confirmLabel="Eliminar horario"
+                    pending={deleteScheduleItem.isPending}
+                    onCancel={() => setConfirmingDelete(false)}
+                    onConfirm={() =>
+                        deleteScheduleItem.mutate(editingSchedule.id, { onSuccess: closeScheduleModal, onError: toast.error })
+                    }
+                >
+                    <p>
+                        Se eliminarán todas las clases de <strong>{editingTitle}</strong> de {seriesWhen(editingSchedule)}.
+                    </p>
+                    {changedOccurrences > 0 && (
+                        <p>También se perderán los cambios que hiciste a {plural(changedOccurrences, 'clase puntual', 'clases puntuales')}.</p>
                     )}
-                    <Button type="submit">Guardar</Button>
-                </>
-            }
-        >
-            <input type="hidden" {...register('categoryId')} />
-            <TextField
-                label="Título (opcional)"
-                placeholder="Si se deja vacío, se usa el nombre de la categoría"
-                {...register('title')}
-            />
-            <SelectField
-                label="Día de la semana"
-                options={WEEKDAY_OPTIONS.map((w) => ({ value: String(w.value), label: w.label }))}
-                {...register('weekday', { valueAsNumber: true })}
-            />
-            <div style={{ display: 'flex', gap: 'var(--pl-space-lg)' }}>
-                <div style={{ flex: 1 }}>
-                    <Controller
-                        name="start"
-                        control={control}
-                        render={({ field }) => <TimeInput label="Hora inicio" value={field.value} onChange={field.onChange} />}
-                    />
-                </div>
-                <div style={{ flex: 1 }}>
-                    <Controller
-                        name="end"
-                        control={control}
-                        render={({ field }) => <TimeInput label="Hora término" value={field.value} onChange={field.onChange} />}
-                    />
-                </div>
-            </div>
-            <div style={{ display: 'flex', gap: 'var(--pl-space-lg)' }}>
-                <div style={{ flex: 1 }}>
-                    <TextField label="Fecha de inicio" type="date" error={errors.startDate?.message} {...register('startDate')} />
-                </div>
-                <div style={{ flex: 1 }}>
-                    <TextField label="Fecha de término" type="date" error={errors.endDate?.message} {...register('endDate')} />
-                </div>
-            </div>
-            <Checkbox label="Repetir cada 2 semanas" {...register('biweekly')} />
-        </Modal>
+                    <p>No se puede deshacer.</p>
+                </ConfirmDialog>
+            )}
+        </>
     );
 }
 

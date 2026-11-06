@@ -1,0 +1,359 @@
+/* Settings: an index down the left, one panel at a time on the right. Each
+   panel opens with a condensed title and a sentence saying what it's for. */
+
+.root {
+    display: flex;
+    height: 100%;
+}
+
+/* ---- section index ------------------------------------------------------ */
+
+.nav {
+    flex: none;
+    width: 228px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--pl-space-2xs);
+    padding: var(--pl-space-4xl) var(--pl-space-xl);
+    border-right: 1px solid var(--pl-color-border);
+}
+
+.navItem {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: var(--pl-space-lg) var(--pl-space-xl);
+    border: 1px solid transparent;
+    border-radius: var(--pl-radius-sm);
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        background-color var(--pl-duration-fast) var(--pl-ease-out),
+        box-shadow var(--pl-duration-fast) var(--pl-ease-out);
+}
+
+.navItem:hover {
+    background: var(--pl-color-control-bg);
+}
+
+/* The open section is a sheet pulled out of the stack, its name highlighted. */
+.navItemActive,
+.navItemActive:hover {
+    background: var(--pl-color-surface);
+    border-color: var(--pl-color-border);
+    box-shadow: var(--pl-shadow-raised);
+}
+
+.navLabel {
+    font-size: var(--pl-text-lg);
+    font-weight: var(--pl-weight-semibold);
+    color: var(--pl-color-ink);
+}
+
+.navHint {
+    font-size: var(--pl-text-xs);
+    color: var(--pl-color-muted);
+}
+
+.content {
+    flex: 1;
+    min-width: 0;
+    overflow: auto;
+}
+
+.inner {
+    max-width: 740px;
+    padding: var(--pl-space-5xl) 40px 56px;
+}
+
+@media (max-width: 760px) {
+    .root {
+        flex-direction: column;
+    }
+
+    .nav {
+        width: auto;
+        flex-direction: row;
+        overflow-x: auto;
+        padding: var(--pl-space-md) var(--pl-space-xl);
+        border-right: none;
+        border-bottom: 1px solid var(--pl-color-border);
+    }
+
+    .navHint {
+        display: none;
+    }
+
+    .inner {
+        padding: var(--pl-space-3xl) var(--pl-space-2xl) 40px;
+    }
+}
+
+/* ---- panel scaffolding ---------------------------------------------------- */
+
+.head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--pl-space-3xl);
+    margin-bottom: var(--pl-space-4xl);
+}
+
+.title {
+    margin: 0 0 var(--pl-space-md);
+    font-size: var(--pl-text-3xl);
+    color: var(--pl-color-ink);
+}
+
+.lede {
+    margin: 0;
+    max-width: 60ch;
+    font-size: var(--pl-text-md);
+    line-height: 1.55;
+    color: var(--pl-color-text-secondary);
+}
+
+.block + .block {
+    margin-top: 28px;
+}
+
+.block > .sheet {
+    margin-top: var(--pl-space-xl);
+}
+
+.blockEmpty {
+    margin: var(--pl-space-lg) 0 0;
+    font-size: var(--pl-text-md);
+    color: var(--pl-color-muted);
+}
+
+.sheet {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--pl-color-border);
+    border-radius: var(--pl-radius-sm);
+    background: var(--pl-color-surface);
+    box-shadow: var(--pl-shadow-raised);
+    overflow: hidden;
+}
+
+.sheet > li + li {
+    border-top: 1px solid var(--pl-color-border);
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    gap: var(--pl-space-xl);
+    min-height: 50px;
+    padding: var(--pl-space-md) var(--pl-space-xl) var(--pl-space-md) var(--pl-space-3xl);
+}
+
+.rowMeta {
+    flex: none;
+    min-width: 6.5rem;
+    text-align: right;
+    font-size: var(--pl-text-sm);
+    color: var(--pl-color-muted);
+    white-space: nowrap;
+}
+
+.deleteBtn:hover {
+    color: var(--pl-color-danger-text);
+    background: var(--pl-color-danger-soft-bg);
+}
+
+.empty {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--pl-space-xl) var(--pl-space-3xl);
+    padding: var(--pl-space-3xl);
+    border: 1px dashed var(--pl-color-border-strong);
+    border-radius: var(--pl-radius-sm);
+}
+
+.empty p {
+    margin: 0;
+    max-width: 52ch;
+    font-size: var(--pl-text-md);
+    line-height: 1.5;
+    color: var(--pl-color-text-secondary);
+}
+
+/* ---- groups ----------------------------------------------------------------- */
+
+/* Reads as plain text until touched; the dashed underline says "editable". */
+.nameInput {
+    flex: 1;
+    min-width: 0;
+    padding: var(--pl-space-xs) var(--pl-space-2xs);
+    border: none;
+    border-bottom: 1px dashed transparent;
+    border-radius: 0;
+    background: transparent;
+    color: var(--pl-color-ink);
+    font: inherit;
+    font-size: var(--pl-text-lg);
+    font-weight: var(--pl-weight-semibold);
+    transition:
+        border-color var(--pl-duration-fast) var(--pl-ease-out),
+        background-color var(--pl-duration-fast) var(--pl-ease-out);
+}
+
+.nameInput:hover {
+    border-bottom-color: var(--pl-color-rule);
+}
+
+.nameInput:focus,
+.nameInput:focus-visible {
+    outline: none;
+    border-bottom: 1px solid var(--pl-color-accent);
+    background: var(--pl-color-highlight-soft);
+}
+
+.swatches {
+    display: flex;
+    gap: 3px;
+}
+
+/* ---- categories ----------------------------------------------------------- */
+
+.catName {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--pl-space-lg);
+    padding: var(--pl-space-xs) 0;
+    border: none;
+    background: none;
+    color: var(--pl-color-ink);
+    font: inherit;
+    font-size: var(--pl-text-lg);
+    font-weight: var(--pl-weight-semibold);
+    text-align: left;
+    cursor: pointer;
+}
+
+.catName:hover > span:last-child {
+    text-decoration: underline;
+    text-decoration-color: var(--pl-color-rule);
+    text-underline-offset: 3px;
+}
+
+.row .select {
+    flex: none;
+    width: auto;
+    max-width: 14rem;
+    height: 30px;
+    padding: 0 var(--pl-space-md);
+    font-size: var(--pl-text-sm);
+}
+
+/* ---- time divisions --------------------------------------------------------- */
+
+/* The day as a ruler, 0h to 24h: each division is a pin at its real time. */
+.ruler {
+    margin-bottom: var(--pl-space-4xl);
+    padding: 46px var(--pl-space-4xl) 34px;
+    border: 1px solid var(--pl-color-border);
+    border-radius: var(--pl-radius-sm);
+    background: var(--pl-color-surface);
+    box-shadow: var(--pl-shadow-raised);
+}
+
+.rulerTrack {
+    position: relative;
+    height: 12px;
+    border-radius: 2px;
+    background: var(--pl-color-control-bg);
+}
+
+.rulerTick {
+    position: absolute;
+    top: 100%;
+    width: 1px;
+    height: 6px;
+    background: var(--pl-color-rule);
+}
+
+.rulerTickLabel {
+    position: absolute;
+    top: 8px;
+    left: 0;
+    transform: translateX(-50%);
+    font-size: var(--pl-text-2xs);
+    font-weight: var(--pl-weight-medium);
+    color: var(--pl-color-muted);
+}
+
+.rulerPin {
+    position: absolute;
+    top: -6px;
+    bottom: -2px;
+    width: 2px;
+    margin-left: -1px;
+    background: var(--pl-color-ink);
+}
+
+.rulerPinLabel {
+    position: absolute;
+    bottom: calc(100% + 3px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0 3px;
+    background: var(--pl-color-highlight-soft);
+    font-size: var(--pl-text-xs);
+    font-weight: var(--pl-weight-bold);
+    color: var(--pl-color-ink);
+    white-space: nowrap;
+}
+
+/* Every other label sits a line higher so close times don't collide. */
+.rulerPinRaised .rulerPinLabel {
+    bottom: calc(100% + 19px);
+}
+
+.addRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--pl-space-md) var(--pl-space-lg);
+    margin-bottom: var(--pl-space-3xl);
+}
+
+.addHint {
+    font-size: var(--pl-text-sm);
+    color: var(--pl-color-warn-text);
+}
+
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--pl-space-sm);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.chip {
+    display: flex;
+    align-items: center;
+    gap: var(--pl-space-2xs);
+    padding: 3px 3px 3px var(--pl-space-lg);
+    border: 1px solid var(--pl-color-border);
+    border-radius: var(--pl-radius-xs);
+    background: var(--pl-color-surface);
+}
+
+.chipTime {
+    font-size: var(--pl-text-md);
+    font-weight: var(--pl-weight-semibold);
+    color: var(--pl-color-ink);
+}

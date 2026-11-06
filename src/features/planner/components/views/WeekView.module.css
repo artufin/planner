@@ -1,0 +1,998 @@
+/* Week view — the week on ruled paper, one line per hour.
+   The time gutter is the notebook margin, closed by the red margin line.
+   Three things sit on the page, each drawn differently:
+   - classes are printed into it (flat, tinted);
+   - one-off events are white slips with a bar in the category colour;
+   - tasks are white slips with a checkbox drawn in the category colour.
+   Deadlines are a red-pen mark on a line in the category colour. Whatever is
+   being dragged lights its landing spot with the highlighter. */
+
+.root {
+    --gutter: 56px;
+    --tray-width: 320px;
+    container-type: inline-size;
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+    background: var(--pl-color-page-bg);
+}
+
+/* ---- panes: the grid scrolls on its own, the tray sits beside it ---------- */
+
+.scroller {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+}
+
+.sheet {
+    position: relative;
+    min-width: 820px;
+}
+
+.tray {
+    grid-column: 2;
+    grid-row: 1;
+    width: var(--tray-width);
+    height: 100%;
+    /* the notebook's double red margin line, as on the planning board */
+    border-left: 1px solid var(--pl-color-margin);
+    box-shadow:
+        inset 3px 0 0 var(--pl-color-page-bg),
+        inset 4px 0 0 var(--pl-color-margin);
+}
+
+/* Not enough room for the week (min 820px) and the panel side by side: the panel lies
+   over the grid instead of pushing columns under it. */
+@container (max-width: 1180px) {
+    .tray {
+        position: absolute;
+        z-index: 9;
+        grid-area: 1 / 1 / -1 / -1;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: min(var(--tray-width), 100%);
+        box-shadow:
+            inset 3px 0 0 var(--pl-color-page-bg),
+            inset 4px 0 0 var(--pl-color-margin),
+            var(--pl-shadow-overlay);
+    }
+}
+
+.cols {
+    display: grid;
+    grid-template-columns: var(--gutter) repeat(7, minmax(0, 1fr));
+}
+
+/* ---- frozen top: day header + "sin hora" strip ---------------------------- */
+
+/* Both rows stick together. They're drop zones too, which works because the
+   drag provider re-measures zones while dragging (MeasuringStrategy.Always). */
+.frozen {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    /* a soft edge so the hours read as sliding under it */
+    box-shadow: 0 6px 10px -8px color-mix(in oklch, var(--pl-color-ink) 25%, transparent);
+}
+
+.head {
+    background: var(--pl-color-page-bg);
+    border-bottom: 1px solid var(--pl-color-rule);
+}
+
+.headGutter {
+    border-right: 1px solid var(--pl-color-margin);
+}
+
+.headDay {
+    display: flex;
+    align-items: baseline;
+    gap: var(--pl-space-sm);
+    padding: var(--pl-space-md) var(--pl-space-md) var(--pl-space-sm);
+    min-width: 0;
+}
+
+.headDay + .headDay {
+    border-left: 1px solid var(--pl-color-border);
+}
+
+.headNum {
+    font-size: var(--pl-text-3xl);
+    color: var(--pl-color-ink);
+}
+
+.headLabel {
+    font-size: var(--pl-text-md);
+    font-weight: var(--pl-weight-semibold);
+    color: var(--pl-color-label);
+}
+
+.headPast .headNum {
+    color: var(--pl-color-muted-light);
+}
+
+.headPast .headLabel {
+    color: var(--pl-color-muted-light);
+}
+
+.headToday {
+    background: color-mix(in oklch, var(--pl-color-highlight-soft) 70%, transparent);
+}
+
+.headToday .headLabel {
+    color: var(--pl-color-accent);
+}
+
+/* ---- "sin hora" strip: untimed events and tasks without a time ----------- */
+
+.strip {
+    border-bottom: 1px solid var(--pl-color-rule);
+    background: var(--pl-color-surface);
+}
+
+.stripGutter {
+    padding: 7px 8px 0 0;
+    border-right: 1px solid var(--pl-color-margin);
+    font-size: var(--pl-text-2xs);
+    font-weight: var(--pl-weight-medium);
+    text-align: right;
+    color: var(--pl-color-muted-light);
+}
+
+.stripDay {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    min-height: 30px;
+    padding: 5px 3px;
+    transition: background-color var(--pl-duration-fast) var(--pl-ease-out);
+}
+
+.stripDay + .stripDay {
+    border-left: 1px solid var(--pl-color-border);
+}
+
+.stripDayToday {
+    background: color-mix(in oklch, var(--pl-color-highlight-soft) 70%, transparent);
+}
+
+.stripDayOver {
+    background: var(--pl-color-highlight-soft);
+    outline: 1.5px dashed var(--pl-color-highlight-strong);
+    outline-offset: -3px;
+}
+
+.stripItem {
+    position: relative;
+}
+
+/* An untimed event: a tinted tab with a bar in the category colour. */
+.stripChip {
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    min-width: 0;
+    padding: 3px 6px 3px 8px;
+    border-radius: var(--pl-radius-xs);
+    background: var(--pl-cat-soft);
+    box-shadow: inset 3px 0 0 var(--pl-cat-solid);
+    color: var(--pl-cat-text);
+    cursor: grab;
+    touch-action: manipulation;
+    user-select: none;
+    transition: background-color var(--pl-duration-fast) var(--pl-ease-out);
+}
+
+.stripChip:hover {
+    background: color-mix(in oklch, var(--pl-cat-soft), var(--pl-cat-solid) 14%);
+}
+
+.stripChip:focus-visible {
+    outline: 2px solid var(--pl-color-accent);
+    outline-offset: 1px;
+}
+
+/* A task without a time: a small white slip with its checkbox. */
+.stripTask {
+    padding-left: 5px;
+    background: var(--pl-color-surface);
+    box-shadow:
+        var(--pl-shadow-raised),
+        inset 0 0 0 1px var(--pl-color-border);
+    color: var(--pl-color-ink);
+}
+
+.stripTask:hover {
+    background: var(--pl-color-surface);
+    box-shadow:
+        var(--pl-shadow-lifted),
+        inset 0 0 0 1px var(--pl-color-border-strong);
+}
+
+.stripDone,
+.stripDone:hover {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--pl-color-border);
+}
+
+.stripPlaceholder,
+.stripPlaceholder:hover {
+    background: transparent;
+    box-shadow: none;
+    outline: 1.5px dashed var(--pl-color-border-strong);
+    outline-offset: -1px;
+}
+
+.stripPlaceholder > * {
+    visibility: hidden;
+}
+
+.stripBody {
+    appearance: none;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: var(--pl-text-xs);
+    font-weight: var(--pl-weight-semibold);
+    line-height: 1.3;
+    text-align: left;
+    color: inherit;
+    cursor: pointer;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.stripDone .stripBody {
+    text-decoration: line-through;
+    text-decoration-thickness: 1.5px;
+    color: var(--pl-color-muted);
+}
+
+/* ---- the task checkbox (grid blocks and strip chips) ---------------------- */
+
+.check {
+    appearance: none;
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 13px;
+    height: 13px;
+    margin: 1px 0 0;
+    padding: 0;
+    border: 1.5px solid var(--pl-cat-solid);
+    border-radius: var(--pl-radius-xs);
+    background: var(--pl-cat-soft);
+    color: var(--pl-color-surface);
+    cursor: pointer;
+    transition:
+        background-color var(--pl-duration-fast) var(--pl-ease-out),
+        box-shadow var(--pl-duration-fast) var(--pl-ease-out);
+}
+
+.check:hover:not(:disabled) {
+    box-shadow: 0 0 0 3px var(--pl-cat-soft);
+}
+
+.check:disabled {
+    cursor: inherit;
+}
+
+.check svg {
+    width: 10px;
+    height: 10px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 16;
+    stroke-dashoffset: 16;
+    transition: stroke-dashoffset 240ms var(--pl-ease-out);
+}
+
+.slipDone .check,
+.stripDone .check {
+    background: var(--pl-cat-solid);
+}
+
+.slipDone .check svg,
+.stripDone .check svg {
+    stroke-dashoffset: 0;
+}
+
+/* ---- hour grid ----------------------------------------------------------- */
+
+.body {
+    position: relative;
+}
+
+.gutter {
+    position: relative;
+    border-right: 1px solid var(--pl-color-margin);
+}
+
+.hourLabel,
+.divisionLabel {
+    position: absolute;
+    right: 8px;
+    font-size: var(--pl-text-2xs);
+    font-variation-settings: "wdth" var(--pl-wdth-semi);
+    line-height: 12px;
+}
+
+.hourLabel {
+    font-weight: var(--pl-weight-medium);
+    color: var(--pl-color-muted);
+}
+
+/* A class period off the hour: smaller and lighter than the hours. */
+.divisionLabel {
+    font-weight: var(--pl-weight-normal);
+    color: var(--pl-color-muted-light);
+}
+
+.divisionTick {
+    position: absolute;
+    right: 0;
+    width: 5px;
+    height: 1px;
+    background: var(--pl-color-rule);
+}
+
+/* Plain paper ruled once per hour — nothing finer, so the hour lines read clearly. */
+.day {
+    position: relative;
+    background-color: var(--pl-color-page-bg);
+    background-image: linear-gradient(to bottom, var(--pl-color-border) 1px, transparent 1px);
+    background-size: 100% var(--hour);
+    transition: background-color var(--pl-duration-fast) var(--pl-ease-out);
+}
+
+.day + .day {
+    border-left: 1px solid var(--pl-color-border-strong);
+}
+
+.dayToday {
+    background-color: color-mix(in oklch, var(--pl-color-highlight-soft) 70%, var(--pl-color-page-bg));
+}
+
+/* The column under the drag. */
+.day.dayOver {
+    background-color: var(--pl-color-highlight-soft);
+}
+
+/* A class session can only move within its own day: the other days go quiet. */
+.day.dayUnavailable {
+    background-color: var(--pl-color-control-bg);
+}
+
+/* The user's own time divisions (class periods) — ruled over the paper. */
+.division {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--pl-color-rule);
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Where the dragged item will land, at its snapped time and length. */
+.preview {
+    position: absolute;
+    z-index: 5;
+    left: 3px;
+    right: 3px;
+    padding: 2px 6px;
+    border: 1.5px dashed var(--pl-color-ink);
+    border-radius: var(--pl-radius-sm);
+    background: color-mix(in oklch, var(--pl-color-highlight) 60%, transparent);
+    pointer-events: none;
+}
+
+/* A due time has no length: a dashed line with the time above it. */
+.previewDue {
+    height: 0;
+    padding: 0;
+    border-width: 2px 0 0;
+    border-radius: 0;
+    background: none;
+}
+
+.previewTime {
+    display: inline-block;
+    font-size: var(--pl-text-2xs);
+    font-weight: var(--pl-weight-bold);
+    font-variation-settings: "wdth" var(--pl-wdth-semi);
+    line-height: 12px;
+    color: var(--pl-color-ink);
+}
+
+.previewDue .previewTime {
+    position: absolute;
+    left: 0;
+    bottom: 2px;
+    padding: 0 4px;
+    border-radius: var(--pl-radius-xs);
+    background: var(--pl-color-highlight);
+}
+
+/* ---- blocks on the grid -------------------------------------------------- */
+
+.slip {
+    --gap: 0px;
+    position: absolute;
+    z-index: 1;
+    left: calc(3px + (100% - 6px) * var(--col) / var(--cols));
+    width: calc((100% - 6px) / var(--cols) - var(--gap));
+    display: flex;
+    gap: 5px;
+    padding: 3px 5px 3px 8px;
+    border-radius: var(--pl-radius-sm);
+    color: var(--pl-cat-text);
+    overflow: hidden;
+    cursor: grab;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    user-select: none;
+    transition:
+        box-shadow var(--pl-duration-fast) var(--pl-ease-out),
+        transform var(--pl-duration-fast) var(--pl-ease-out),
+        background-color var(--pl-duration-fast) var(--pl-ease-out);
+}
+
+.slipSplit {
+    --gap: 2px;
+}
+
+.slip::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--pl-cat-solid);
+}
+
+.slip:focus-visible,
+.slip:focus-within {
+    z-index: 3;
+}
+
+.slip:focus-visible {
+    outline: 2px solid var(--pl-color-accent);
+    outline-offset: 1px;
+}
+
+/* An overnight event: opens on click, but isn't moved by dragging. */
+.slipFixed {
+    cursor: default;
+}
+
+.slipBody {
+    appearance: none;
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    text-align: left;
+    color: inherit;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.slipBody:focus-visible {
+    outline: none;
+}
+
+.slip:has(.slipBody:focus-visible) {
+    outline: 2px solid var(--pl-color-accent);
+    outline-offset: 1px;
+}
+
+/* A class: printed into the timetable — flat and tinted. */
+.slipClass {
+    background: var(--pl-cat-soft);
+}
+
+.slipClass:hover {
+    background: color-mix(in oklch, var(--pl-cat-soft), var(--pl-cat-solid) 14%);
+}
+
+/* A one-off event: a white slip laid on top of the page. */
+.slipEvent {
+    background: var(--pl-color-surface);
+    box-shadow:
+        var(--pl-shadow-raised),
+        inset 0 0 0 1px color-mix(in oklch, var(--pl-cat-solid) 32%, transparent);
+}
+
+.slipEvent:hover {
+    z-index: 2;
+    transform: translateY(-1px);
+    box-shadow:
+        var(--pl-shadow-lifted),
+        inset 0 0 0 1px color-mix(in oklch, var(--pl-cat-solid) 45%, transparent);
+}
+
+/* A task: a white slip in ink, its colour only in the checkbox — no bar. */
+.slipTask {
+    padding-left: 5px;
+    background: var(--pl-color-surface);
+    box-shadow:
+        var(--pl-shadow-raised),
+        inset 0 0 0 1px var(--pl-color-border-strong);
+    color: var(--pl-color-ink);
+}
+
+.slipTask::before {
+    display: none;
+}
+
+.slipTask:hover {
+    z-index: 2;
+    transform: translateY(-1px);
+    box-shadow:
+        var(--pl-shadow-lifted),
+        inset 0 0 0 1px var(--pl-color-checkbox-border);
+}
+
+/* Done: the slip is crossed out and goes flat. */
+.slipDone,
+.slipDone:hover {
+    background: color-mix(in oklch, var(--pl-color-surface) 55%, transparent);
+    box-shadow: inset 0 0 0 1px var(--pl-color-border);
+    transform: none;
+}
+
+.slipDone .slipTitle {
+    text-decoration: line-through;
+    text-decoration-thickness: 1.5px;
+    color: var(--pl-color-muted);
+}
+
+.slipDone .slipTime {
+    color: var(--pl-color-muted-light);
+}
+
+.slipTitle {
+    display: -webkit-box;
+    -webkit-line-clamp: var(--lines, 3);
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: var(--pl-text-sm);
+    font-weight: var(--pl-weight-bold);
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.slipEvent .slipTitle {
+    color: var(--pl-color-ink);
+}
+
+.slipSub,
+.slipTime {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--pl-text-2xs);
+    line-height: 12px;
+}
+
+.slipSub {
+    font-weight: var(--pl-weight-semibold);
+    opacity: 0.75;
+}
+
+.slipTime {
+    font-weight: var(--pl-weight-semibold);
+    font-variation-settings: "wdth" var(--pl-wdth-semi);
+}
+
+.slipTask .slipTime {
+    color: var(--pl-color-text-secondary);
+}
+
+/* Short blocks: one line, time first. */
+.slipCompact {
+    align-items: center;
+    padding-top: 1px;
+    padding-bottom: 0;
+}
+
+.slipCompact .slipBody {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 5px;
+}
+
+.slipCompact .slipTime {
+    order: -1;
+    flex: none;
+}
+
+.slipCompact .slipTitle {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: var(--pl-text-xs);
+}
+
+.slipCompact .slipSub {
+    display: none;
+}
+
+.slipCompact .check {
+    width: 11px;
+    height: 11px;
+    margin-top: 0;
+}
+
+.slipCompact .check svg {
+    width: 8px;
+    height: 8px;
+}
+
+/* Where a block was picked up from, while its copy travels. */
+.slip.slipPlaceholder,
+.slip.slipPlaceholder:hover {
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+    outline: 1.5px dashed var(--pl-color-border-strong);
+    outline-offset: -1px;
+}
+
+.slipPlaceholder::before,
+.slipPlaceholder > * {
+    visibility: hidden;
+}
+
+/* Being stretched from its bottom edge. */
+.slip.slipResizing {
+    z-index: 4;
+    box-shadow:
+        var(--pl-shadow-lifted),
+        inset 0 0 0 1.5px var(--pl-cat-solid);
+    transform: none;
+    cursor: ns-resize;
+}
+
+/* The copy that follows the pointer. */
+.slip.slipOverlay {
+    position: relative;
+    left: auto;
+    width: 100%;
+    height: 100%;
+    box-shadow:
+        var(--pl-shadow-overlay),
+        inset 0 0 0 1px color-mix(in oklch, var(--pl-cat-solid) 45%, transparent);
+    transform: rotate(-1.5deg);
+    cursor: grabbing;
+}
+
+.slipOverlay .slipTitle {
+    -webkit-line-clamp: 2;
+}
+
+/* The bottom edge: drag it to change the end time. */
+.resize {
+    position: absolute;
+    z-index: 1;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 7px;
+    cursor: ns-resize;
+    touch-action: none;
+}
+
+.slipCompact .resize {
+    height: 5px;
+}
+
+.resize::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 2px;
+    width: 18px;
+    height: 2px;
+    margin-left: -9px;
+    border-radius: 1px;
+    background: var(--pl-cat-solid);
+    opacity: 0;
+    transition: opacity var(--pl-duration-fast) var(--pl-ease-out);
+}
+
+.slip:hover .resize::after,
+.slipResizing .resize::after,
+.resize:focus-visible::after {
+    opacity: 0.75;
+}
+
+.resize:focus-visible {
+    outline: 2px solid var(--pl-color-accent);
+    outline-offset: -2px;
+}
+
+/* ---- deadline marks ------------------------------------------------------ */
+
+/* The node is the line itself — its top edge is the due time. The label sits above it. */
+.deadline {
+    position: absolute;
+    z-index: 3;
+    left: 3px;
+    right: 3px;
+    height: 3px;
+    cursor: grab;
+    touch-action: manipulation;
+    user-select: none;
+}
+
+.deadline:focus-visible {
+    outline: 2px solid var(--pl-color-accent);
+    outline-offset: 2px;
+}
+
+.deadlineLabel {
+    appearance: none;
+    position: absolute;
+    left: 0;
+    bottom: 100%;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    max-width: 100%;
+    margin: 0 0 1px;
+    padding: 0 4px 0 8px;
+    border: 0;
+    border-radius: var(--pl-radius-xs) var(--pl-radius-xs) 0 0;
+    background: color-mix(in oklch, var(--pl-color-page-bg) 88%, transparent);
+    font: inherit;
+    font-size: var(--pl-text-2xs);
+    line-height: 13px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.deadlineTime {
+    flex: none;
+    font-weight: var(--pl-weight-bold);
+    font-variation-settings: "wdth" var(--pl-wdth-semi);
+    color: var(--pl-color-danger-text);
+}
+
+.deadlineTitle {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--pl-text-xs);
+    font-weight: var(--pl-weight-bold);
+    color: var(--pl-cat-text);
+}
+
+.deadline:hover .deadlineTitle {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.deadlineRule {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--pl-cat-solid);
+    transition: height var(--pl-duration-fast) var(--pl-ease-out);
+}
+
+.deadline:hover .deadlineRule {
+    height: 3px;
+}
+
+/* The red-pen tick at the start of the line. */
+.deadlineRule::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    background: var(--pl-color-danger-text);
+    box-shadow: 0 0 0 1.5px var(--pl-color-page-bg);
+    transform: translate(-1px, -50%) rotate(45deg);
+}
+
+.deadlinePlaceholder {
+    opacity: 0.35;
+}
+
+.deadline.deadlineOverlay {
+    position: relative;
+    left: auto;
+    right: auto;
+    width: 100%;
+    cursor: grabbing;
+}
+
+.deadlineOverlay .deadlineLabel {
+    background: var(--pl-color-surface);
+    box-shadow: var(--pl-shadow-lifted);
+}
+
+/* ---- tooltip ------------------------------------------------------------- */
+
+.tip {
+    position: absolute;
+    z-index: 7;
+    min-width: 132px;
+    max-width: 220px;
+    padding: 6px 9px 7px;
+    border-radius: var(--pl-radius-md);
+    background: var(--pl-color-tooltip-bg);
+    box-shadow: var(--pl-shadow-lifted);
+    color: var(--pl-color-surface);
+    font-size: var(--pl-text-xs);
+    line-height: 1.35;
+    pointer-events: none;
+    transform: translateY(-100%);
+}
+
+.tipBelow {
+    transform: none;
+}
+
+/* Anchored to a block in the hour grid — same column maths as .slip. */
+.tipAtSlip {
+    left: calc(3px + (100% - 6px) * var(--col) / var(--cols));
+}
+
+.tipAtSlipEnd {
+    right: calc(3px + (100% - 6px) * (var(--cols) - var(--col) - 1) / var(--cols));
+}
+
+/* Anchored under a chip in the strip. */
+.tipStrip {
+    left: 0;
+    top: calc(100% + 4px);
+    transform: none;
+}
+
+.tipStripEnd {
+    left: auto;
+    right: 0;
+}
+
+.tipTitle {
+    font-weight: var(--pl-weight-bold);
+    overflow-wrap: anywhere;
+}
+
+.tipMeta,
+.tipLoc {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    margin-top: 2px;
+    font-size: var(--pl-text-2xs);
+    font-weight: var(--pl-weight-medium);
+}
+
+.tipMeta > span:last-child,
+.tipLoc > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tipLine {
+    margin-top: 1px;
+    padding-left: 12px;
+    font-size: var(--pl-text-2xs);
+    font-weight: var(--pl-weight-medium);
+    font-variation-settings: "wdth" var(--pl-wdth-semi);
+    opacity: 0.85;
+}
+
+.tipLoc {
+    opacity: 0.75;
+}
+
+.tipDot {
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--pl-cat-solid);
+    box-shadow: 0 0 0 1.5px color-mix(in oklch, var(--pl-color-surface) 70%, transparent);
+}
+
+.tipPin {
+    flex: none;
+    width: 7px;
+    text-align: center;
+}
+
+/* ---- now line (red pen) -------------------------------------------------- */
+
+.now {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 0;
+    z-index: 4;
+    pointer-events: none;
+}
+
+.nowLabel {
+    position: absolute;
+    left: 0;
+    top: -8px;
+    width: var(--gutter);
+    height: 16px;
+    padding-right: 6px;
+    background: var(--pl-color-page-bg);
+    font-size: var(--pl-text-2xs);
+    font-weight: var(--pl-weight-bold);
+    font-variation-settings: "wdth" var(--pl-wdth-semi);
+    line-height: 16px;
+    text-align: right;
+    color: var(--pl-color-now-line);
+}
+
+.nowTrack {
+    position: absolute;
+    left: var(--gutter);
+    right: 0;
+    top: 0;
+    height: 1px;
+    background: color-mix(in oklch, var(--pl-color-now-line) 35%, transparent);
+}
+
+.nowToday {
+    position: absolute;
+    top: -1px;
+    left: calc(var(--gutter) + (100% - var(--gutter)) * var(--today) / 7);
+    width: calc((100% - var(--gutter)) / 7);
+    height: 2px;
+    background: var(--pl-color-now-line);
+}
+
+.nowToday::before {
+    content: "";
+    position: absolute;
+    left: -4px;
+    top: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--pl-color-now-line);
+}

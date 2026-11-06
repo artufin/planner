@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { http } from './http';
+import { optimisticList } from './optimistic';
 import { queryKeys } from './queryKeys';
 import type { ScheduleException, ScheduleItem } from './types';
 
@@ -63,6 +64,24 @@ export function useUpsertScheduleException() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (input: UpsertScheduleExceptionInput) => http.put<ScheduleException>('/api/schedule-exceptions', input),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.scheduleExceptions }),
+        ...optimisticList<ScheduleException, UpsertScheduleExceptionInput>(queryClient, queryKeys.scheduleExceptions, upsertException),
     });
+}
+
+/** Mirrors the server's upsert-by-(scheduleId, date) so a moved class shows at its new time immediately. */
+function upsertException(list: ScheduleException[], input: UpsertScheduleExceptionInput): ScheduleException[] {
+    const next: ScheduleException = {
+        id: `optimistic-${input.scheduleId}-${input.date}`,
+        scheduleId: input.scheduleId,
+        date: input.date,
+        cancelled: input.cancelled,
+        title: input.title ?? null,
+        start: input.start ?? null,
+        end: input.end ?? null,
+    };
+    const i = list.findIndex((x) => x.scheduleId === input.scheduleId && x.date === input.date);
+    if (i === -1) return [...list, next];
+    const copy = list.slice();
+    copy[i] = { ...next, id: list[i].id };
+    return copy;
 }

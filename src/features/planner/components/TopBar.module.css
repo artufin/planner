@@ -1,0 +1,181 @@
+/* The page header: where you are, written large in condensed ink on the left;
+   what you can do, in one tidy row on the right. */
+
+.bar {
+    height: 60px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--pl-space-3xl);
+    padding: 0 var(--pl-space-4xl);
+    border-bottom: 1px solid var(--pl-color-rule);
+    background: var(--pl-color-page-bg);
+    color: var(--pl-color-ink);
+}
+
+.lead {
+    display: flex;
+    align-items: center;
+    gap: var(--pl-space-2xl);
+    min-width: 0;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: var(--pl-space-lg);
+    flex: none;
+}
+
+/* ---- titles ------------------------------------------------------------ */
+
+.title {
+    margin: 0;
+    font-variation-settings: "wdth" var(--pl-wdth-condensed);
+    font-size: var(--pl-text-3xl);
+    font-weight: var(--pl-weight-heavy);
+    line-height: 1;
+    letter-spacing: -0.01em;
+    font-feature-settings: "tnum" 1;
+    color: var(--pl-color-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+/* "noviembre 2026" → "Noviembre 2026", without capitalising "de". Works
+   because a title is a flex item, so it's always a block container. */
+.sentence::first-letter {
+    text-transform: uppercase;
+}
+
+/* ---- range navigation (calendar + planning) ---------------------------- */
+
+.nav {
+    display: flex;
+    align-items: center;
+    gap: var(--pl-space-md);
+    flex: none;
+}
+
+.arrows {
+    display: flex;
+    align-items: center;
+    gap: var(--pl-space-xs);
+}
+
+.arrow {
+    font-size: var(--pl-text-2xl);
+    line-height: 1;
+    padding-bottom: 2px;
+}
+
+/* ---- category breadcrumb ----------------------------------------------- */
+
+.crumbs {
+    display: flex;
+    align-items: center;
+    gap: var(--pl-space-md);
+    min-width: 0;
+}
+
+.crumbLink {
+    padding: var(--pl-space-xs) var(--pl-space-2xs);
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: var(--pl-text-lg);
+    font-weight: var(--pl-weight-semibold);
+    color: var(--pl-color-muted);
+    text-decoration: underline;
+    text-decoration-color: var(--pl-color-rule);
+    text-underline-offset: 3px;
+    cursor: pointer;
+    flex: none;
+    transition: color var(--pl-duration-fast) var(--pl-ease-out);
+}
+
+.crumbLink:hover {
+    color: var(--pl-color-ink);
+    text-decoration-color: currentColor;
+}
+
+.crumbSlash {
+    color: var(--pl-color-text-faint);
+    font-size: var(--pl-text-xl);
+    flex: none;
+}
+
+/* ---- action row -------------------------------------------------------- */
+
+.divider {
+    width: 1px;
+    height: 22px;
+    margin: 0 var(--pl-space-2xs);
+    background: var(--pl-color-border-strong);
+    flex: none;
+}
+
+.plus {
+    font-size: var(--pl-text-xl);
+    font-weight: var(--pl-weight-bold);
+    line-height: 0;
+    margin-left: -2px;
+}
+
+/* "Por planificar" toggle (week view): opens the side panel. */
+.trayToggle {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--pl-space-md);
+    margin: 0;
+    padding: 4px 6px 4px 11px;
+    border: 1px solid var(--pl-color-border-strong);
+    border-radius: var(--pl-radius-lg);
+    background: var(--pl-color-surface);
+    font: inherit;
+    font-size: var(--pl-text-md);
+    font-weight: var(--pl-weight-semibold);
+    color: var(--pl-color-ink);
+    cursor: pointer;
+    transition:
+        background-color var(--pl-duration-fast) var(--pl-ease-out),
+        border-color var(--pl-duration-fast) var(--pl-ease-out);
+}
+
+.trayToggle:hover {
+    border-color: var(--pl-color-checkbox-border);
+}
+
+.trayToggle:focus-visible {
+    outline: 2px solid var(--pl-color-accent);
+    outline-offset: 2px;
+}
+
+/* Open: marked with the highlighter, like the active day. */
+.trayToggleOn,
+.trayToggleOn:hover {
+    border-color: var(--pl-color-highlight-strong);
+    background: var(--pl-color-highlight-soft);
+}
+
+.trayToggleCount {
+    min-width: 20px;
+    padding: 1px 6px;
+    border-radius: var(--pl-radius-sm);
+    background: var(--pl-color-chip-bg);
+    font-size: var(--pl-text-xs);
+    font-weight: var(--pl-weight-bold);
+    font-variation-settings: "wdth" var(--pl-wdth-semi);
+    text-align: center;
+    color: var(--pl-color-text-secondary);
+}
+
+.trayToggleOn .trayToggleCount {
+    background: var(--pl-color-highlight);
+    color: var(--pl-color-ink);
+}
+

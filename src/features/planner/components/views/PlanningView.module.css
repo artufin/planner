@@ -1,0 +1,322 @@
+/* Planning board — "cuaderno".
+   Left: the tray of undated tasks, a white sheet. Right: the week as a notebook
+   page, separated from the tray by the page's red double margin line. Each day
+   leads with a big condensed number and a ribbon of its fixed commitments
+   (07:00–23:00), so tasks are planned against the time that's actually free. */
+
+.board {
+    display: grid;
+    grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+    background: var(--pl-color-page-bg);
+}
+
+/* ===== Week ============================================================== */
+
+.week {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(160px, 1fr));
+    min-height: 0;
+    min-width: 0;
+    overflow-x: auto;
+    /* the notebook's double red margin line */
+    border-left: 1px solid var(--pl-color-margin);
+    box-shadow:
+        inset 3px 0 0 var(--pl-color-page-bg),
+        inset 4px 0 0 var(--pl-color-margin);
+}
+
+.day {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    border-right: 1px solid var(--pl-color-border);
+    transition: background-color var(--pl-duration-base) var(--pl-ease-out);
+}
+
+.day:first-child {
+    padding-left: 4px;
+}
+
+.day:last-child {
+    border-right: none;
+}
+
+.day.today {
+    background: var(--pl-color-surface);
+}
+
+.day.over {
+    background: var(--pl-color-highlight-soft);
+}
+
+.dayHead {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 20px 14px 12px;
+    border-bottom: 1px solid var(--pl-color-border);
+}
+
+.dayNameRow {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--pl-space-md);
+}
+
+.dayName {
+    font-size: 12.5px;
+    font-weight: var(--pl-weight-semibold);
+    color: var(--pl-color-text-secondary);
+}
+
+.today .dayName {
+    font-weight: var(--pl-weight-bold);
+    color: var(--pl-color-ink);
+}
+
+.tally,
+.tallyLate {
+    font-size: var(--pl-text-xs);
+    font-variation-settings: "wdth" var(--pl-wdth-semi);
+    white-space: nowrap;
+}
+
+.tally {
+    color: var(--pl-color-muted);
+}
+
+.tallyDone {
+    font-weight: var(--pl-weight-bold);
+    color: var(--pl-color-accent);
+}
+
+.tallyLate {
+    font-weight: var(--pl-weight-bold);
+    color: var(--pl-color-danger-text);
+}
+
+.dayNumRow {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.dayNum {
+    font-size: var(--pl-text-display);
+    color: var(--pl-color-ink);
+}
+
+.past .dayNum,
+.past .dayName {
+    color: var(--pl-color-muted-light);
+}
+
+.month {
+    font-size: var(--pl-text-sm);
+    font-weight: var(--pl-weight-semibold);
+    color: var(--pl-color-muted);
+}
+
+/* 07:00–23:00. The two faint ticks are noon and 18:00. */
+.ribbon {
+    position: relative;
+    height: 10px;
+    margin-top: 8px;
+    border-radius: 2px;
+    background-color: var(--pl-color-chip-bg);
+    background-image:
+        linear-gradient(var(--pl-color-border-strong), var(--pl-color-border-strong)),
+        linear-gradient(var(--pl-color-border-strong), var(--pl-color-border-strong));
+    background-repeat: no-repeat;
+    background-size: 1px 100%;
+    background-position: 31.25% 0, 68.75% 0;
+}
+
+.segment {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    min-width: 2px;
+    border-radius: 1.5px;
+    background: var(--pl-cat-solid);
+}
+
+/* One-off events are hatched, so they read apart from the weekly classes. */
+.segmentEvent {
+    background: repeating-linear-gradient(
+        135deg,
+        var(--pl-cat-solid) 0 2.5px,
+        var(--pl-cat-soft) 2.5px 4.5px
+    );
+    box-shadow: inset 0 0 0 1px var(--pl-cat-solid);
+}
+
+.dueTick,
+.nowTick {
+    position: absolute;
+    top: -4px;
+    bottom: -4px;
+    width: 2px;
+    margin-left: -1px;
+    border-radius: 1px;
+    pointer-events: none;
+}
+
+.dueTick {
+    background: var(--pl-color-danger-text);
+    pointer-events: auto;
+}
+
+.nowTick {
+    background: var(--pl-color-ink);
+}
+
+.free {
+    font-size: 11.5px;
+    font-weight: var(--pl-weight-medium);
+    color: var(--pl-color-muted);
+}
+
+.notes {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.due,
+.allDay {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+    padding: 4px 7px;
+    border: none;
+    border-radius: var(--pl-radius-sm);
+    font: inherit;
+    font-size: 11.5px;
+    font-weight: var(--pl-weight-semibold);
+    line-height: 1.3;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--pl-duration-fast) var(--pl-ease-out);
+}
+
+.due {
+    background: var(--pl-color-danger-soft-bg);
+    color: var(--pl-color-danger-text);
+}
+
+.due:hover {
+    background: var(--pl-color-danger-border);
+}
+
+.allDay {
+    background: var(--pl-cat-soft);
+    color: var(--pl-cat-text);
+}
+
+.allDay:hover {
+    box-shadow: inset 0 0 0 1px var(--pl-cat-solid);
+}
+
+.dueTime {
+    flex: none;
+    font-weight: var(--pl-weight-heavy);
+    font-variation-settings: "wdth" var(--pl-wdth-semi);
+}
+
+.noteTitle {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stack {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.dayBody {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 10px 28px;
+}
+
+.addTask {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 7px 9px;
+    border: 1px dashed transparent;
+    border-radius: var(--pl-radius-md);
+    background: none;
+    font: inherit;
+    font-size: var(--pl-text-sm);
+    font-weight: var(--pl-weight-semibold);
+    color: var(--pl-color-text-faint);
+    text-align: left;
+    cursor: pointer;
+    transition:
+        color var(--pl-duration-fast) var(--pl-ease-out),
+        border-color var(--pl-duration-fast) var(--pl-ease-out),
+        background-color var(--pl-duration-fast) var(--pl-ease-out);
+}
+
+.day:hover .addTask,
+.addTask:focus-visible {
+    color: var(--pl-color-muted);
+    border-color: var(--pl-color-border-strong);
+}
+
+.addTask:hover {
+    color: var(--pl-color-ink);
+    border-color: var(--pl-color-checkbox-border);
+    background: var(--pl-color-surface);
+}
+
+.isDragging .addTask {
+    visibility: hidden;
+}
+
+/* ===== Narrow screens ===================================================== */
+
+@media (max-width: 860px) {
+    .board {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .week {
+        grid-template-columns: repeat(7, minmax(220px, 78vw));
+        scroll-snap-type: x mandatory;
+        border-left: none;
+        box-shadow: none;
+    }
+
+    .day {
+        scroll-snap-align: start;
+    }
+
+    .day:first-child {
+        padding-left: 0;
+    }
+}

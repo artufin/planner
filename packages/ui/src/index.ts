@@ -16,7 +16,9 @@ export { SectionDivider, type SectionDividerProps } from './SectionDivider.js';
 export { TaskCard, type TaskCardProps, type DeadlineTone } from './TaskCard.js';
 export { CategoryCard, type CategoryCardProps } from './CategoryCard.js';
 export { ColumnHeader, type ColumnHeaderProps } from './ColumnHeader.js';
-export { HuePicker, type HuePickerProps } from './HuePicker.js';
+export { HuePicker, type HuePickerProps, type UsedHue } from './HuePicker.js';
 export { Swatch, type SwatchProps } from './Swatch.js';
 
 export { colors, HUE_SWATCHES, solidColor, softColor, softTextColor, hueVars, cx } from './tokens.js';
+export { CATEGORY_PALETTE, categoryColor, colorName, colorDistance, similarColors, suggestHue } from './palette.js';
+export type { CategoryColor } from './palette.js';

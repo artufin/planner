@@ -1,0 +1,179 @@
+/* The subjects index: a ring binder's dividers, grouped by group. Each group is
+   one white sheet; each subject a divider row with its color tab. */
+
+.page {
+    padding: var(--pl-space-5xl) var(--pl-space-5xl) 56px;
+    max-width: 1040px;
+    container-type: inline-size;
+}
+
+/* ---- summary line ------------------------------------------------------ */
+
+.summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--pl-space-md) var(--pl-space-5xl);
+    margin: 0 0 var(--pl-space-5xl);
+}
+
+/* dt comes first in the markup; it reads after the number. */
+.stat {
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: baseline;
+    gap: var(--pl-space-sm);
+}
+
+.statValue {
+    margin: 0;
+    font-size: var(--pl-text-3xl);
+    color: var(--pl-color-ink);
+}
+
+.statLabel {
+    font-size: var(--pl-text-md);
+    font-weight: var(--pl-weight-medium);
+    color: var(--pl-color-text-secondary);
+}
+
+.statDanger .statValue,
+.statDanger .statLabel {
+    color: var(--pl-color-danger-text);
+}
+
+/* ---- groups ------------------------------------------------------------ */
+
+.group + .group {
+    margin-top: 36px;
+}
+
+.sheet {
+    margin-top: var(--pl-space-xl);
+    border: 1px solid var(--pl-color-border);
+    border-radius: var(--pl-radius-sm);
+    background: var(--pl-color-surface);
+    box-shadow: var(--pl-shadow-raised);
+    overflow: hidden;
+}
+
+/* ---- facts on a subject row --------------------------------------------- */
+
+.fact {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+/* Fixed widths keep the facts lined up in columns down every sheet. */
+.factClass {
+    width: 9.5rem;
+}
+
+.factDue {
+    width: 14rem;
+}
+
+.factCount {
+    width: 5.5rem;
+    align-items: flex-end;
+    text-align: right;
+}
+
+.factLabel {
+    font-size: var(--pl-text-xs);
+    font-weight: var(--pl-weight-medium);
+    color: var(--pl-color-muted);
+}
+
+.factValue {
+    font-size: var(--pl-text-md);
+    color: var(--pl-color-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.factStrong {
+    font-weight: var(--pl-weight-bold);
+    color: var(--pl-color-ink);
+}
+
+.factTitle {
+    color: var(--pl-color-text-secondary);
+}
+
+.factNone {
+    font-size: var(--pl-text-md);
+    color: var(--pl-color-text-faint);
+}
+
+.toneSoon {
+    color: var(--pl-color-warn-text);
+}
+
+.countValue {
+    font-size: var(--pl-text-3xl);
+    color: var(--pl-color-ink);
+}
+
+.countDone {
+    font-size: var(--pl-text-md);
+    font-weight: var(--pl-weight-semibold);
+    color: var(--pl-color-muted);
+}
+
+.countOverdue {
+    font-size: var(--pl-text-xs);
+    font-weight: var(--pl-weight-bold);
+    color: var(--pl-color-danger-text);
+}
+
+/* Narrow: the facts drop under the name and share the row evenly. */
+@container (max-width: 700px) {
+    .factClass,
+    .factDue {
+        width: auto;
+        flex: 1 1 8rem;
+    }
+
+    .factCount {
+        width: auto;
+        align-items: flex-start;
+        text-align: left;
+    }
+}
+
+@media (max-width: 640px) {
+    .page {
+        padding: var(--pl-space-3xl) var(--pl-space-2xl) 40px;
+    }
+}
+
+/* ---- empty: a blank notebook page --------------------------------------- */
+
+.empty {
+    max-width: 560px;
+    padding: 40px var(--pl-space-5xl) 40px 56px;
+    border: 1px solid var(--pl-color-border);
+    border-radius: var(--pl-radius-sm);
+    background:
+        linear-gradient(90deg, transparent 39px, var(--pl-color-margin) 39px 40px, transparent 40px),
+        var(--pl-color-surface);
+    box-shadow: var(--pl-shadow-raised);
+}
+
+.emptyTitle {
+    margin: 0 0 var(--pl-space-xl);
+    font-size: var(--pl-text-3xl);
+    color: var(--pl-color-ink);
+}
+
+.emptyText {
+    margin: 0 0 var(--pl-space-3xl);
+    max-width: 44ch;
+    font-size: var(--pl-text-lg);
+    line-height: 1.55;
+    color: var(--pl-color-text-secondary);
+}

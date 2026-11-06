@@ -10,7 +10,7 @@ import {
     type ReactNode,
 } from 'react';
 import { cx } from './tokens.js';
-import { FieldShell } from './field.js';
+import { FieldShell, fieldNoteId } from './field.js';
 
 const clampHour = (n: number) => Math.min(23, Math.max(0, n));
 const clampMinute = (n: number) => Math.min(59, Math.max(0, n));
@@ -44,12 +44,16 @@ export interface TimeInputProps {
     onChange: (value: string) => void;
     /** Renders the input inside a labelled field shell, full width. */
     label?: ReactNode;
+    /** Marks the field as optional with a quiet "opcional" beside the label. */
+    optional?: boolean;
     hint?: ReactNode;
     error?: ReactNode;
     disabled?: boolean;
     id?: string;
     className?: string;
     style?: CSSProperties;
+    /** Names the input when it has no visible `label` (e.g. sitting beside a Checkbox). */
+    'aria-label'?: string;
 }
 
 /**
@@ -62,12 +66,14 @@ export function TimeInput({
     value,
     onChange,
     label,
+    optional,
     hint,
     error,
     disabled,
     id,
     className,
     style,
+    'aria-label': ariaLabel,
 }: TimeInputProps) {
     const [text, setText] = useState(value);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -117,6 +123,9 @@ export function TimeInput({
                 if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
             }}
             maxLength={5}
+            aria-label={ariaLabel}
+            aria-invalid={error != null ? true : undefined}
+            aria-describedby={fieldNoteId(inputId, hint, error)}
             className={cx('pl-input', 'pl-input--time', className)}
             style={{ fontVariantNumeric: 'tabular-nums', ...style }}
         />
@@ -125,7 +134,7 @@ export function TimeInput({
     if (label == null && hint == null && error == null) return input;
 
     return (
-        <FieldShell id={inputId} label={label} hint={hint} error={error}>
+        <FieldShell id={inputId} label={label} optional={optional} hint={hint} error={error}>
             {input}
         </FieldShell>
     );

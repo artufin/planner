@@ -19,8 +19,8 @@ export interface SwatchProps {
 
 /**
  * A block of one category color — the dot beside a category name, a cell in the
- * hue picker, or the strip across the top of a CategoryCard. Renders as a
- * `<button>` when clickable and a `<div>` otherwise.
+ * hue picker, or a full-width strip. Renders as a `<button>` when clickable and
+ * a `<div>` otherwise (announced as an image when it has an `ariaLabel`).
  */
 export function Swatch({
     hue,
@@ -42,5 +42,5 @@ export function Swatch({
     if (onClick) {
         return <button type="button" aria-label={ariaLabel} aria-pressed={selected} onClick={onClick} {...props} />;
     }
-    return <div aria-label={ariaLabel} {...props} />;
+    return <div role={ariaLabel ? 'img' : undefined} aria-label={ariaLabel} {...props} />;
 }

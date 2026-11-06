@@ -22,7 +22,8 @@ export interface SegmentedControlProps {
 }
 
 /**
- * A tinted track holding two or more buttons, one of which reads as selected —
+ * A paper slip holding two or more buttons, the selected one swiped with the
+ * highlighter —
  * the planner's Calendario / Semana view switcher. With `value={null}` the same
  * track works as a plain button group (the zoom − / + pair).
  */
@@ -52,7 +53,7 @@ export function SegmentedControl({
                         onClick={() => onChange?.(o.value)}
                         className={cx('pl-segmented__option', active && 'pl-segmented__option--active')}
                     >
-                        {o.label}
+                        <span className="pl-segmented__label">{o.label}</span>
                     </button>
                 );
             })}

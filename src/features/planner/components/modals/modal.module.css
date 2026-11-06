@@ -1,0 +1,85 @@
+/* Layout glue shared by the planner's form modals. */
+
+/* Two fields side by side — start/end, from/until. */
+.row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--pl-space-lg);
+    align-items: start;
+}
+
+/* A titled block of related fields, set off by a dashed rule like a section
+   of notes on the same page. */
+.group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pl-space-xl);
+    margin-top: var(--pl-space-xs);
+    padding-top: var(--pl-space-xl);
+    border-top: 1px dashed var(--pl-color-border-strong);
+}
+
+.groupTitle {
+    margin: 0;
+    font-size: var(--pl-text-md);
+    font-weight: var(--pl-weight-bold);
+    color: var(--pl-color-ink);
+}
+
+/* A checkbox that unlocks a time input right under it. */
+.toggleSlot {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pl-space-sm);
+    min-width: 0;
+}
+
+/* Unlabelled, a TimeInput is sized for "HH:MM"; in a slot it fills the column. */
+.toggleSlot :global(.pl-input--time) {
+    width: 100%;
+}
+
+/* A short explanation of what the current combination of fields means. */
+.note {
+    margin: 0;
+    font-size: var(--pl-text-xs);
+    line-height: 1.45;
+    color: var(--pl-color-text-secondary);
+}
+
+.subtitle {
+    margin: calc(-1 * var(--pl-space-xs)) 0 0;
+    font-size: var(--pl-text-sm);
+    line-height: 1.4;
+    color: var(--pl-color-muted);
+}
+
+.subtitle strong {
+    font-weight: var(--pl-weight-semibold);
+    color: var(--pl-color-ink);
+}
+
+.footerStart {
+    display: flex;
+    gap: var(--pl-space-md);
+}
+
+.linkButton {
+    align-self: flex-start;
+    padding: var(--pl-space-2xs) 0;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: var(--pl-text-sm);
+    font-weight: var(--pl-weight-semibold);
+    color: var(--pl-color-accent);
+    text-decoration: underline;
+    text-decoration-color: var(--pl-color-rule);
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+
+.linkButton:hover {
+    color: var(--pl-color-accent-text);
+    text-decoration-color: currentColor;
+}

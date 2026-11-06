@@ -1,22 +1,69 @@
 'use client';
 
-import { Button, IconButton, SegmentedControl, Swatch, colors } from '@planner/ui';
+import { useState } from 'react';
+import { Button, IconButton, SegmentedControl, Swatch, cx } from '@planner/ui';
 import { usePlannerStore } from '../store';
-import { useCategories, useDeleteCategory } from '@/lib/api/categories';
-import { apiErrorMessage } from '@/lib/api/http';
-import { categoryById, getRangeLabel } from '../utils';
+import { useCategories } from '@/lib/api/categories';
+import { useTasks } from '@/lib/api/tasks';
+import { backlogTasks, categoryById, getRangeLabel } from '../utils';
+import { useWeekTrayOpen } from '../useWeekTray';
 import { useToday } from '../useToday';
+import DeleteCategoryDialog from './DeleteCategoryDialog';
+import styles from './TopBar.module.css';
 
-function NavArrows() {
+/** Opens and closes the week view's "Por planificar" side panel, with how many tasks are waiting there. */
+function TrayToggle() {
+    const { data: categories = [] } = useCategories();
+    const { data: tasks = [] } = useTasks();
+    const [open, setOpen] = useWeekTrayOpen();
+    const pending = backlogTasks(tasks, categories).filter((t) => !t.done).length;
+    return (
+        <button
+            type="button"
+            className={cx(styles.trayToggle, open && styles.trayToggleOn)}
+            aria-expanded={open}
+            onClick={() => setOpen(!open)}
+        >
+            Por planificar
+            <span className={styles.trayToggleCount}>{pending}</span>
+        </button>
+    );
+}
+
+/** Prev / next / today, followed by the range they move through. Shared by the calendar and planning views. */
+function RangeNav({ label, unit }: { label: string; unit: 'month' | 'week' }) {
     const goPrev = usePlannerStore((s) => s.goPrev);
     const goNext = usePlannerStore((s) => s.goNext);
     const goToday = usePlannerStore((s) => s.goToday);
+    const prevLabel = unit === 'month' ? 'Mes anterior' : 'Semana anterior';
+    const nextLabel = unit === 'month' ? 'Mes siguiente' : 'Semana siguiente';
     return (
         <>
-            <IconButton aria-label="Anterior" onClick={goPrev}>‹</IconButton>
-            <IconButton aria-label="Siguiente" onClick={goNext}>›</IconButton>
-            <Button variant="secondary" size="sm" onClick={goToday}>Hoy</Button>
+            <div className={styles.nav}>
+                <div className={styles.arrows}>
+                    <IconButton aria-label={prevLabel} title={`${prevLabel} (←)`} onClick={goPrev}>
+                        <span className={styles.arrow}>‹</span>
+                    </IconButton>
+                    <IconButton aria-label={nextLabel} title={`${nextLabel} (→)`} onClick={goNext}>
+                        <span className={styles.arrow}>›</span>
+                    </IconButton>
+                </div>
+                <Button variant="secondary" size="sm" title="Ir a hoy (h)" onClick={goToday}>
+                    Hoy
+                </Button>
+            </div>
+            <h1 className={`${styles.title} ${styles.sentence}`} aria-live="polite">
+                {label}
+            </h1>
         </>
+    );
+}
+
+function Plus() {
+    return (
+        <span className={styles.plus} aria-hidden="true">
+            +
+        </span>
     );
 }
 
@@ -34,7 +81,7 @@ export default function TopBar() {
     const openEventModalNew = usePlannerStore((s) => s.openEventModalNew);
     const openCategoryModalNew = usePlannerStore((s) => s.openCategoryModalNew);
     const openCategoryModalEdit = usePlannerStore((s) => s.openCategoryModalEdit);
-    const deleteCategory = useDeleteCategory();
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
     const today = useToday();
 
     const isMonthView = view === 'month';
@@ -49,68 +96,27 @@ export default function TopBar() {
     const rangeLabel = getRangeLabel(view, today, monthOffset, weekOffset);
 
     return (
-        <div
-            style={{
-                height: 46,
-                flex: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '0 24px',
-                borderBottom: `1px solid ${colors.border}`,
-                background: colors.pageBg,
-            }}
-        >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <header className={styles.bar}>
+            <div className={styles.lead}>
                 {isCategoryView && selectedCategory && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div onClick={goToCategoriesList} style={{ cursor: 'pointer', fontSize: 14, fontWeight: 600, color: colors.muted }}>
-                            Categorías /
-                        </div>
+                    <div className={styles.crumbs}>
+                        <button type="button" className={styles.crumbLink} onClick={goToCategoriesList}>
+                            Categorías
+                        </button>
+                        <span className={styles.crumbSlash} aria-hidden="true">
+                            /
+                        </span>
                         <Swatch hue={selectedCategory.hue} />
-                        <div style={{ fontSize: 15, fontWeight: 700 }}>{selectedCategory.name}</div>
+                        <h1 className={styles.title}>{selectedCategory.name}</h1>
                     </div>
                 )}
-                {isCategoriesListView && <div style={{ fontSize: 15, fontWeight: 700 }}>Categorías</div>}
-                {isSettingsView && <div style={{ fontSize: 15, fontWeight: 700 }}>Configuración</div>}
-                {isCalendarView && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <NavArrows />
-                        <div style={{ fontSize: 15, fontWeight: 700, marginLeft: 6, textTransform: 'capitalize' }}>{rangeLabel}</div>
-                    </div>
-                )}
-                {isPlanningView && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <NavArrows />
-                        <div style={{ fontSize: 15, fontWeight: 700, marginLeft: 6 }}>{rangeLabel}</div>
-                    </div>
-                )}
+                {isCategoriesListView && <h1 className={styles.title}>Categorías</h1>}
+                {isSettingsView && <h1 className={styles.title}>Configuración</h1>}
+                {(isCalendarView || isPlanningView) && <RangeNav label={rangeLabel} unit={isMonthView ? 'month' : 'week'} />}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                {isCalendarView && <Button onClick={() => openEventModalNew()}>+ Agregar evento</Button>}
-                {isCategoriesListView && <Button onClick={openCategoryModalNew}>+ Nueva categoría</Button>}
-                {isCategoryView && selectedCategoryId && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Button variant="secondary" size="sm" onClick={() => openCategoryModalEdit(selectedCategoryId)}>
-                            Editar categoría
-                        </Button>
-                        <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => {
-                                if (window.confirm('¿Eliminar esta categoría y todos sus horarios/eventos/tareas?')) {
-                                    deleteCategory.mutate(selectedCategoryId, {
-                                        onSuccess: () => goToCategoriesList(),
-                                        onError: (e) => window.alert(apiErrorMessage(e)),
-                                    });
-                                }
-                            }}
-                        >
-                            Eliminar
-                        </Button>
-                    </div>
-                )}
+            <div className={styles.actions}>
+                {/* Week-only controls go first, so Mes / Semana sits in the same spot in both calendar views. */}
                 {isWeekView && (
                     <SegmentedControl
                         ariaLabel="Zoom"
@@ -123,18 +129,54 @@ export default function TopBar() {
                         ]}
                     />
                 )}
+                {isWeekView && <TrayToggle />}
                 {isCalendarView && (
                     <SegmentedControl
                         ariaLabel="Vista"
                         value={isMonthView ? 'month' : 'week'}
                         onChange={(v) => (v === 'month' ? goToMonth() : goToWeek())}
                         options={[
-                            { value: 'month', label: 'Calendario' },
+                            { value: 'month', label: 'Mes' },
                             { value: 'week', label: 'Semana' },
                         ]}
                     />
                 )}
+                {isCalendarView && (
+                    <>
+                        <span className={styles.divider} aria-hidden="true" />
+                        <Button onClick={() => openEventModalNew()}>
+                            <Plus />
+                            Agregar evento
+                        </Button>
+                    </>
+                )}
+                {isCategoriesListView && (
+                    <Button onClick={openCategoryModalNew}>
+                        <Plus />
+                        Nueva categoría
+                    </Button>
+                )}
+                {isCategoryView && selectedCategoryId && (
+                    <>
+                        <Button variant="secondary" size="sm" onClick={() => openCategoryModalEdit(selectedCategoryId)}>
+                            Editar categoría
+                        </Button>
+                        <Button variant="danger" size="sm" onClick={() => setConfirmingDelete(true)}>
+                            Eliminar
+                        </Button>
+                    </>
+                )}
             </div>
-        </div>
+            {confirmingDelete && selectedCategory && (
+                <DeleteCategoryDialog
+                    category={selectedCategory}
+                    onCancel={() => setConfirmingDelete(false)}
+                    onDeleted={() => {
+                        setConfirmingDelete(false);
+                        goToCategoriesList();
+                    }}
+                />
+            )}
+        </header>
     );
 }

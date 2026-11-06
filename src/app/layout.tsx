@@ -1,25 +1,27 @@
 import type { Metadata } from "next";
-import { Manrope } from 'next/font/google';
+import { Archivo } from 'next/font/google';
 // The design system first, then app-level overrides.
 import '@planner/ui/styles.css';
 import "./globals.css";
 
 import Providers from '@/components/Providers'
 
-const manrope = Manrope({
-    subsets: ['latin'],
-    weight: ['400', '500', '600', '700', '800'],
-    variable: '--font-manrope',
+// Variable on both axes: the width axis (wdth 62–125) is what the display
+// type uses to go condensed — see `.pl-display` in @planner/ui.
+const archivo = Archivo({
+    subsets: ['latin', 'latin-ext'],
+    axes: ['wdth'],
+    variable: '--font-archivo',
 });
 
 export const metadata: Metadata = {
-  title: "Planner :)",
+  title: "Planner",
 };
 
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-        <html lang="es" className={manrope.variable}>
+        <html lang="es" className={archivo.variable}>
             <body>
                 <Providers>
                     {children}

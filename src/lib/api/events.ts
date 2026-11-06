@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { http } from './http';
 import { queryKeys } from './queryKeys';
+import { optimisticList, patchById } from './optimistic';
 import type { PlannerEvent } from './types';
 
 export function useEvents() {
@@ -26,7 +27,7 @@ export function useUpdateEvent() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: ({ id, ...patch }: UpdateEventInput) => http.patch<PlannerEvent>(`/api/events/${id}`, patch),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.events }),
+        ...optimisticList<PlannerEvent, UpdateEventInput>(queryClient, queryKeys.events, patchById),
     });
 }
 

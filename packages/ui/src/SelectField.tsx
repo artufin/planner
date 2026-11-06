@@ -1,6 +1,6 @@
 import { useId, type ReactNode, type SelectHTMLAttributes } from 'react';
 import { cx } from './tokens.js';
-import { FieldShell } from './field.js';
+import { FieldShell, fieldNoteId } from './field.js';
 
 export interface SelectFieldOption {
     value: string;
@@ -10,6 +10,8 @@ export interface SelectFieldOption {
 
 export interface SelectFieldProps extends SelectHTMLAttributes<HTMLSelectElement> {
     label?: ReactNode;
+    /** Marks the field as optional with a quiet "opcional" beside the label. */
+    optional?: boolean;
     hint?: ReactNode;
     error?: ReactNode;
     /** Convenience over writing `<option>` children; ignored when `children` is given. */
@@ -22,6 +24,7 @@ export interface SelectFieldProps extends SelectHTMLAttributes<HTMLSelectElement
 /** A labelled `<select>` wearing the same shell as TextField. */
 export function SelectField({
     label,
+    optional,
     hint,
     error,
     options,
@@ -35,8 +38,14 @@ export function SelectField({
     const autoId = useId();
     const selectId = id ?? autoId;
     return (
-        <FieldShell id={selectId} label={label} hint={hint} error={error} className={fieldClassName}>
-            <select id={selectId} className={cx('pl-input', className)} {...rest}>
+        <FieldShell id={selectId} label={label} optional={optional} hint={hint} error={error} className={fieldClassName}>
+            <select
+                id={selectId}
+                className={cx('pl-input', className)}
+                aria-invalid={error != null ? true : undefined}
+                aria-describedby={fieldNoteId(selectId, hint, error)}
+                {...rest}
+            >
                 {placeholder != null && <option value="">{placeholder}</option>}
                 {children ??
                     options?.map((o) => (

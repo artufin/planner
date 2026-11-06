@@ -14,6 +14,11 @@ import EventModal from './modals/EventModal';
 import TaskModal from './modals/TaskModal';
 import ScheduleModal from './modals/ScheduleModal';
 import CategoryModal from './modals/CategoryModal';
+import { PlannerDnd } from '../dnd';
+import Toaster from '../toast/Toaster';
+import ShortcutsDialog from './ShortcutsDialog';
+import { useUrlState } from '../useUrlState';
+import { useShortcuts } from '../useShortcuts';
 
 export default function PlannerApp() {
     const view = usePlannerStore((s) => s.view);
@@ -21,9 +26,12 @@ export default function PlannerApp() {
     const taskModalOpen = usePlannerStore((s) => s.taskModal.open);
     const scheduleModalOpen = usePlannerStore((s) => s.scheduleModal.open);
     const categoryModalOpen = usePlannerStore((s) => s.categoryModal.open);
+    const shortcutsOpen = usePlannerStore((s) => s.shortcutsOpen);
+    useUrlState();
+    useShortcuts();
 
     const contentAreaStyle =
-        view === 'month' || view === 'settings'
+        view === 'month' || view === 'settings' || view === 'planning'
             ? { flex: 1, overflow: 'hidden' as const, minWidth: 0 }
             : { flex: 1, overflow: 'auto' as const, minWidth: 0 };
 
@@ -33,12 +41,14 @@ export default function PlannerApp() {
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                 <TopBar />
                 <div style={contentAreaStyle}>
-                    {view === 'month' && <MonthView />}
-                    {view === 'week' && <WeekView />}
-                    {view === 'planning' && <PlanningView />}
-                    {view === 'categoriesList' && <CategoriesListView />}
-                    {view === 'category' && <CategoryView />}
-                    {view === 'settings' && <SettingsView />}
+                    <PlannerDnd>
+                        {view === 'month' && <MonthView />}
+                        {view === 'week' && <WeekView />}
+                        {view === 'planning' && <PlanningView />}
+                        {view === 'categoriesList' && <CategoriesListView />}
+                        {view === 'category' && <CategoryView />}
+                        {view === 'settings' && <SettingsView />}
+                    </PlannerDnd>
                 </div>
             </div>
 
@@ -46,6 +56,8 @@ export default function PlannerApp() {
             {taskModalOpen && <TaskModal />}
             {scheduleModalOpen && <ScheduleModal />}
             {categoryModalOpen && <CategoryModal />}
+            {shortcutsOpen && <ShortcutsDialog />}
+            <Toaster />
         </div>
     );
 }

@@ -3,11 +3,12 @@
 import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, HuePicker, Modal, SelectField, TextField } from '@planner/ui';
+import { Button, HuePicker, Modal, SelectField, TextField, suggestHue } from '@planner/ui';
 import { usePlannerStore } from '../../store';
-import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from '@/lib/api/categories';
+import { useCategories, useCreateCategory, useUpdateCategory } from '@/lib/api/categories';
 import { useGroups } from '@/lib/api/groups';
-import { apiErrorMessage } from '@/lib/api/http';
+import { toast } from '../../toast/toast';
+import DeleteCategoryDialog from '../DeleteCategoryDialog';
 import { categoryFormSchema, type CategoryFormValues } from '../../schemas';
 
 export default function CategoryModal() {
@@ -17,13 +18,17 @@ export default function CategoryModal() {
     const closeCategoryModal = usePlannerStore((s) => s.closeCategoryModal);
     const createCategory = useCreateCategory();
     const updateCategory = useUpdateCategory();
-    const deleteCategory = useDeleteCategory();
+    const view = usePlannerStore((s) => s.view);
+    const selectedCategoryId = usePlannerStore((s) => s.selectedCategoryId);
+    const goToCategoriesList = usePlannerStore((s) => s.goToCategoriesList);
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
 
     const editingCategory = categoryModal.editingId ? categories.find((c) => c.id === categoryModal.editingId) : undefined;
 
     const defaultValues = useMemo<CategoryFormValues>(() => {
         if (editingCategory) return { name: editingCategory.name, hue: editingCategory.hue };
-        return { name: '', hue: 255 };
+        /** A new category starts on the palette color furthest from the ones already in use. */
+        return { name: '', hue: suggestHue(categories.map((c) => c.hue)) };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -36,7 +41,7 @@ export default function CategoryModal() {
     const [groupId, setGroupId] = useState(editingCategory?.groupId ?? groups[0]?.id ?? '');
 
     const onSubmit = (values: CategoryFormValues) => {
-        const onError = (e: unknown) => window.alert(apiErrorMessage(e));
+        const onError = toast.error;
         if (editingCategory) {
             updateCategory.mutate(
                 { id: editingCategory.id, name: values.name.trim(), hue: values.hue, groupId: groupId || null },
@@ -51,46 +56,54 @@ export default function CategoryModal() {
     };
 
     return (
-        <Modal
-            asForm
-            width={340}
-            title={editingCategory ? 'Editar categoría' : 'Nueva categoría'}
-            onClose={closeCategoryModal}
-            onSubmit={handleSubmit(onSubmit)}
-            footer={
-                <>
-                    {editingCategory ? (
-                        <Button
-                            variant="danger"
-                            onClick={() => {
-                                if (window.confirm('¿Eliminar esta categoría y todos sus horarios/eventos/tareas?')) {
-                                    deleteCategory.mutate(editingCategory.id, {
-                                        onSuccess: closeCategoryModal,
-                                        onError: (e) => window.alert(apiErrorMessage(e)),
-                                    });
-                                }
-                            }}
-                        >
-                            Eliminar
-                        </Button>
-                    ) : (
-                        <span />
-                    )}
-                    <Button type="submit">Guardar</Button>
-                </>
-            }
-        >
-            <TextField label="Nombre" placeholder="ej. Álgebra Lineal" {...register('name')} />
-            <SelectField
-                label="Grupo"
-                value={groupId}
-                onChange={(e) => setGroupId(e.target.value)}
-                options={groups.map((g) => ({ value: g.id, label: g.name }))}
-            />
-            <div>
-                <div className="pl-field__label">Color</div>
-                <HuePicker value={hue} onChange={(h) => setValue('hue', h)} />
-            </div>
-        </Modal>
+        <>
+            <Modal
+                asForm
+                width={340}
+                closeOnEscape={!confirmingDelete}
+                title={editingCategory ? 'Editar categoría' : 'Nueva categoría'}
+                onClose={closeCategoryModal}
+                onSubmit={handleSubmit(onSubmit)}
+                footer={
+                    <>
+                        {editingCategory ? (
+                            <Button variant="danger" onClick={() => setConfirmingDelete(true)}>
+                                Eliminar
+                            </Button>
+                        ) : (
+                            <span />
+                        )}
+                        <Button type="submit">Guardar</Button>
+                    </>
+                }
+            >
+                <TextField label="Nombre" placeholder="ej. Álgebra Lineal" {...register('name')} />
+                <SelectField
+                    label="Grupo"
+                    value={groupId}
+                    onChange={(e) => setGroupId(e.target.value)}
+                    options={groups.map((g) => ({ value: g.id, label: g.name }))}
+                />
+                <div>
+                    <div className="pl-field__label">Color</div>
+                    <HuePicker
+                        value={hue}
+                        onChange={(h) => setValue('hue', h)}
+                        used={categories.filter((c) => c.id !== editingCategory?.id).map((c) => ({ hue: c.hue, label: c.name }))}
+                    />
+                </div>
+            </Modal>
+            {confirmingDelete && editingCategory && (
+                <DeleteCategoryDialog
+                    category={editingCategory}
+                    onCancel={() => setConfirmingDelete(false)}
+                    onDeleted={() => {
+                        closeCategoryModal();
+                        // Its page would be empty now.
+                        if (view === 'category' && selectedCategoryId === editingCategory.id) goToCategoriesList();
+                    }}
+                />
+            )}
+        </>
     );
 }

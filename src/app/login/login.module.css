@@ -1,0 +1,91 @@
+/* One sheet of notebook paper on the desk, with another peeking out beneath
+   it. Red margin line, today's date written at the top, the wordmark large. */
+
+.page {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--pl-space-3xl);
+    background: var(--pl-color-page-bg);
+    color: var(--pl-color-ink);
+}
+
+.stack {
+    position: relative;
+    width: 100%;
+    max-width: 360px;
+    isolation: isolate;
+}
+
+/* the sheet underneath, slightly askew */
+.stack::before {
+    content: "";
+    position: absolute;
+    inset: 6px -4px -6px 4px;
+    z-index: -1;
+    border-radius: var(--pl-radius-lg);
+    background: var(--pl-color-surface);
+    border: 1px solid var(--pl-color-border);
+    box-shadow: var(--pl-shadow-raised);
+    transform: rotate(2.2deg);
+}
+
+.sheet {
+    --margin: 34px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--pl-space-3xl);
+    padding: var(--pl-space-4xl) var(--pl-space-4xl) var(--pl-space-4xl) calc(var(--margin) + 20px);
+    border-radius: var(--pl-radius-lg);
+    border: 1px solid var(--pl-color-border);
+    background-color: var(--pl-color-surface);
+    background-image: linear-gradient(
+        90deg,
+        transparent var(--margin),
+        var(--pl-color-margin) var(--margin) calc(var(--margin) + 1px),
+        transparent calc(var(--margin) + 1px)
+    );
+    box-shadow: var(--pl-shadow-lifted);
+}
+
+.head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pl-space-md);
+}
+
+.date {
+    min-height: 1.2em;
+    margin: 0;
+    font-size: var(--pl-text-sm);
+    color: var(--pl-color-muted);
+}
+
+.wordmark {
+    margin: 0;
+    font-variation-settings: "wdth" var(--pl-wdth-condensed);
+    font-size: var(--pl-text-display);
+    font-weight: var(--pl-weight-heavy);
+    line-height: 0.95;
+    letter-spacing: -0.015em;
+    color: var(--pl-color-ink);
+}
+
+.greeting {
+    margin: 0;
+    font-size: var(--pl-text-lg);
+    color: var(--pl-color-text-secondary);
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pl-space-2xl);
+}
+
+.submit {
+    width: 100%;
+}

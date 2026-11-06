@@ -1,0 +1,53 @@
+/* A cheat sheet ruled like the notebook page: key on the left, what it does on the right. */
+
+.list {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    align-items: center;
+    gap: var(--pl-space-xl);
+    padding: var(--pl-space-sm) 0;
+    border-bottom: 1px dashed var(--pl-color-border-strong);
+}
+
+.row:last-child {
+    border-bottom: none;
+}
+
+.keys {
+    display: flex;
+    gap: var(--pl-space-xs);
+}
+
+.key {
+    min-width: 22px;
+    padding: 2px var(--pl-space-sm) 3px;
+    border: 1px solid var(--pl-color-border-strong);
+    border-bottom-width: 2px;
+    border-radius: var(--pl-radius-sm);
+    background: var(--pl-color-surface);
+    font-family: var(--pl-font-sans);
+    font-size: var(--pl-text-sm);
+    font-weight: var(--pl-weight-bold);
+    line-height: 1.2;
+    text-align: center;
+    color: var(--pl-color-ink);
+}
+
+.label {
+    margin: 0;
+    font-size: var(--pl-text-lg);
+    color: var(--pl-color-text);
+}
+
+.note {
+    margin: 0;
+    font-size: var(--pl-text-xs);
+    line-height: 1.45;
+    color: var(--pl-color-text-secondary);
+}

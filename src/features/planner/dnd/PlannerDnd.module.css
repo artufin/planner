@@ -1,0 +1,29 @@
+/* The default drag copy: a small tab in the item's category color. */
+.ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 260px;
+    padding: 6px 12px 6px 10px;
+    border-radius: var(--pl-radius-md);
+    border: 1px solid var(--pl-color-border-strong);
+    background: var(--pl-color-surface);
+    color: var(--pl-color-ink);
+    box-shadow: var(--pl-shadow-overlay);
+    font-size: var(--pl-text-md);
+    font-weight: var(--pl-weight-semibold);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transform: rotate(-1.5deg);
+    cursor: grabbing;
+}
+
+.ghost::before {
+    content: '';
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--pl-cat-solid);
+}

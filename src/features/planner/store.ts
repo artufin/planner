@@ -13,6 +13,39 @@ interface ModalState {
 
 const CLOSED_MODAL: ModalState = { open: false, editingId: null, presetCategoryId: null, occurrenceDate: null };
 
+const SIDEBAR_KEY = 'planner:sidebar-collapsed';
+
+/** Where the user is: the slice of state that the URL mirrors (see useUrlState). */
+export interface NavState {
+    view: ViewName;
+    selectedCategoryId: string | null;
+    monthOffset: number;
+    weekOffset: number;
+    settingsSubview: SettingsSubview;
+}
+
+/** Views that page through time — the only ones prev/next/today mean anything in. */
+export function isDatedView(view: ViewName): boolean {
+    return view === 'month' || view === 'week' || view === 'planning';
+}
+
+/** Read once after mount (see Sidebar), so the first render never depends on the browser. */
+export function readStoredSidebarCollapsed(): boolean {
+    try {
+        return window.localStorage.getItem(SIDEBAR_KEY) === '1';
+    } catch {
+        return false;
+    }
+}
+
+function storeSidebarCollapsed(collapsed: boolean) {
+    try {
+        window.localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0');
+    } catch {
+        // Private mode or blocked storage: the choice just won't survive a reload.
+    }
+}
+
 interface PlannerState {
     // ---- navigation / UI ----
     view: ViewName;
@@ -21,6 +54,8 @@ interface PlannerState {
     weekOffset: number;
     weekZoom: number;
     settingsSubview: SettingsSubview;
+    sidebarCollapsed: boolean;
+    shortcutsOpen: boolean;
 
     eventModal: ModalState;
     taskModal: ModalState;
@@ -38,8 +73,19 @@ interface PlannerState {
     goPrev: () => void;
     goNext: () => void;
     goToday: () => void;
+    /** Today in a dated view; from anywhere else, today in the month calendar. */
+    jumpToToday: () => void;
+    /** Replaces the navigation slice wholesale — used to restore it from the URL. */
+    applyNav: (nav: Partial<NavState>) => void;
     zoomIn: () => void;
     zoomOut: () => void;
+
+    // ---- chrome ----
+    toggleSidebar: () => void;
+    /** Hydration only: sets the state without writing it back to storage. */
+    setSidebarCollapsed: (collapsed: boolean) => void;
+    openShortcuts: () => void;
+    closeShortcuts: () => void;
 
     // ---- modals ----
     openCategoryModalNew: () => void;
@@ -67,6 +113,8 @@ export const usePlannerStore = create<PlannerState>()((set) => ({
     weekOffset: 0,
     weekZoom: 56,
     settingsSubview: 'groups',
+    sidebarCollapsed: false,
+    shortcutsOpen: false,
 
     eventModal: CLOSED_MODAL,
     taskModal: CLOSED_MODAL,
@@ -93,8 +141,20 @@ export const usePlannerStore = create<PlannerState>()((set) => ({
                 : { monthOffset: s.monthOffset + 1 },
         ),
     goToday: () => set({ monthOffset: 0, weekOffset: 0 }),
+    jumpToToday: () =>
+        set((s) => (isDatedView(s.view) ? { monthOffset: 0, weekOffset: 0 } : { view: 'month', monthOffset: 0, weekOffset: 0 })),
+    applyNav: (nav) => set(nav),
     zoomIn: () => set((s) => ({ weekZoom: Math.min(120, s.weekZoom + 16) })),
     zoomOut: () => set((s) => ({ weekZoom: Math.max(24, s.weekZoom - 16) })),
+
+    toggleSidebar: () =>
+        set((s) => {
+            storeSidebarCollapsed(!s.sidebarCollapsed);
+            return { sidebarCollapsed: !s.sidebarCollapsed };
+        }),
+    setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
+    openShortcuts: () => set({ shortcutsOpen: true }),
+    closeShortcuts: () => set({ shortcutsOpen: false }),
 
     openCategoryModalNew: () => set({ categoryModal: { open: true, editingId: null, presetCategoryId: null } }),
     openCategoryModalEdit: (id) => set({ categoryModal: { open: true, editingId: id, presetCategoryId: null } }),

@@ -1,416 +1,173 @@
 'use client';
 
-import { Fragment, useMemo, useState } from 'react';
+import { useLayoutEffect, useRef, type CSSProperties } from 'react';
+import { useDndMonitor } from '@dnd-kit/core';
 import { usePlannerStore } from '../../store';
 import { useCategories } from '@/lib/api/categories';
 import { useEvents } from '@/lib/api/events';
 import { useSchedule, useScheduleExceptions } from '@/lib/api/schedule';
+import { useTasks } from '@/lib/api/tasks';
 import { useTimeDivisions } from '@/lib/api/timeDivisions';
-import { colors } from '@planner/ui';
-import { NO_CATEGORY_LABEL, WEEKDAY_LABELS } from '../../constants';
-import {
-    categoryById,
-    dateToInput,
-    eventsForDate,
-    getWeekStart,
-    isDeadlineEvent,
-    isOvernightEvent,
-    isUntimedEvent,
-    recurringForRange,
-    sameDate,
-    scheduleTitleFor,
-    softColor,
-    softTextColor,
-    solidColor,
-    timeToMinutes,
-} from '../../utils';
+import { cx } from '@planner/ui';
+import { getWeekStart, pad2, recurringForRange, timeToMinutes } from '../../utils';
 import { useNowMinutes, useToday } from '../../useToday';
+import BacklogTray from '../BacklogTray';
+import { buildWeek } from './week/model';
+import { noteDragEnd } from './week/dragState';
+import { useWeekTrayOpen } from '../../useWeekTray';
+import { WeekDayColumn } from './week/WeekDayColumn';
+import { WeekStripDay } from './week/WeekStripDay';
+import s from './WeekView.module.css';
 
-interface DayColumnEvent {
-    key: string;
-    isLine: boolean;
-    title: string;
-    subtitle?: string;
-    hue: number | null;
-    top: number;
-    height?: number;
-    timeLabel?: string;
-    /** Hover tooltip: the category name, plus the location when the event has one. */
-    categoryName: string;
-    location: string | null;
-    clickable: boolean;
-    onClick?: () => void;
-}
+/** Hour labels are 12px tall; a time-division label closer than this to one would collide with it. */
+const LABEL_CLEARANCE = 14;
 
-/** A chip in the strip above the hour grid: an event with no start time (untimed, or deadline-shaped with only an end time). */
-interface StripItem {
-    key: string;
-    eventId: string;
-    title: string;
-    hue: number | null;
-    /** Hover tooltip: the category name, plus the location when the event has one. */
-    categoryName: string;
-    location: string | null;
-}
-
-interface DayColumn {
-    label: string;
-    dayNum: number;
-    dateIso: string;
-    isToday: boolean;
-    events: DayColumnEvent[];
+/** Nearest scrolling ancestor — the grid scrolls inside its own pane. */
+function scrollParentOf(el: HTMLElement): HTMLElement | null {
+    let node = el.parentElement;
+    while (node) {
+        const { overflowY } = getComputedStyle(node);
+        if (overflowY === 'auto' || overflowY === 'scroll') return node;
+        node = node.parentElement;
+    }
+    return null;
 }
 
 export default function WeekView() {
     const { data: categories = [] } = useCategories();
     const { data: events = [] } = useEvents();
+    const { data: tasks = [] } = useTasks();
     const { data: schedule = [] } = useSchedule();
     const { data: scheduleExceptions = [] } = useScheduleExceptions();
     const { data: timeDivisions = [] } = useTimeDivisions();
-    const weekOffset = usePlannerStore((s) => s.weekOffset);
-    const weekZoom = usePlannerStore((s) => s.weekZoom);
-    const openEventModalNew = usePlannerStore((s) => s.openEventModalNew);
-    const openEventModalEdit = usePlannerStore((s) => s.openEventModalEdit);
-    const openScheduleModalOccurrence = usePlannerStore((s) => s.openScheduleModalOccurrence);
+    const weekOffset = usePlannerStore((st) => st.weekOffset);
+    const weekZoom = usePlannerStore((st) => st.weekZoom);
     const today = useToday();
     const nowMinutes = useNowMinutes();
-    const [hoverEventKey, setHoverEventKey] = useState<string | null>(null);
+    const [trayOpen, setTrayOpen] = useWeekTrayOpen();
 
-    const weekStart = useMemo(() => getWeekStart(today, weekOffset), [today, weekOffset]);
-    const recurringWeek = useMemo(
-        () => recurringForRange(schedule, categories, weekStart, 7, scheduleExceptions),
-        [schedule, categories, weekStart, scheduleExceptions],
-    );
+    useDndMonitor({ onDragEnd: noteDragEnd, onDragCancel: noteDragEnd });
 
-    const weekStrip = useMemo(() => {
-        const out: StripItem[][] = [];
-        for (let i = 0; i < 7; i++) {
-            const dt = new Date(weekStart);
-            dt.setDate(weekStart.getDate() + i);
-            const dateIso = dateToInput(dt.getFullYear(), dt.getMonth(), dt.getDate());
-            out.push(
-                eventsForDate(events, categories, dateIso)
-                    .filter((ev) => isUntimedEvent(ev) || isDeadlineEvent(ev))
-                    .map((ev) => ({
-                        key: `strip-${ev.id}`,
-                        eventId: ev.id,
-                        title: ev.title,
-                        hue: categoryById(categories, ev.categoryId)?.hue ?? null,
-                        categoryName: categoryById(categories, ev.categoryId)?.name ?? NO_CATEGORY_LABEL,
-                        location: ev.location,
-                    })),
-            );
+    const headRef = useRef<HTMLDivElement>(null);
+    const bodyRef = useRef<HTMLDivElement>(null);
+
+    /**
+     * On mount, scroll the grid to 07:00 — or, on the current week, far enough
+     * that "now" is in view — instead of starting at midnight.
+     */
+    useLayoutEffect(() => {
+        const body = bodyRef.current;
+        const scroller = body && scrollParentOf(body);
+        if (!body || !scroller) return;
+        const { weekZoom: zoom, weekOffset: offset } = usePlannerStore.getState();
+        const headHeight = headRef.current?.offsetHeight ?? 0;
+        const visibleMinutes = ((scroller.clientHeight - headHeight) / zoom) * 60;
+        const now = new Date();
+        const nowMin = now.getHours() * 60 + now.getMinutes();
+        let target = 7 * 60;
+        if (offset === 0) {
+            if (nowMin < target) target = Math.max(0, nowMin - 60);
+            else if (nowMin > target + visibleMinutes - 60) target = nowMin - 120;
         }
-        return out;
-    }, [weekStart, events, categories]);
-    const hasStripItems = weekStrip.some((d) => d.length > 0);
+        const bodyTop = body.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
+        scroller.scrollTop = Math.max(0, bodyTop + (target / 60) * zoom - headHeight - 6);
+    }, []);
 
-    const weekDays: DayColumn[] = useMemo(() => {
-        const out: DayColumn[] = [];
-        for (let i = 0; i < 7; i++) {
-            const dt = new Date(weekStart);
-            dt.setDate(weekStart.getDate() + i);
-            const dateIso = dateToInput(dt.getFullYear(), dt.getMonth(), dt.getDate());
-            const singleEvents = eventsForDate(events, categories, dateIso).filter((ev) => !isUntimedEvent(ev));
-            const dayRecurring = recurringWeek.filter((ev) => ev.y === dt.getFullYear() && ev.m === dt.getMonth() && ev.d === dt.getDate());
-            const dayEvents = [...dayRecurring, ...singleEvents];
+    // React Compiler memoizes these derivations; no manual useMemo needed.
+    const weekStart = getWeekStart(today, weekOffset);
+    const recurring = recurringForRange(schedule, categories, weekStart, 7, scheduleExceptions);
+    const days = buildWeek({
+        weekStart,
+        today,
+        events,
+        tasks,
+        categories,
+        recurring,
+        exceptions: scheduleExceptions,
+        zoom: weekZoom,
+    });
 
-            const columnEvents: DayColumnEvent[] = dayEvents.map((ev) => {
-                const c = categoryById(categories, ev.categoryId);
-                const isSchedule = 'scheduleId' in ev;
-                const title = isSchedule ? scheduleTitleFor(ev, c!) : ev.title;
-                const subtitle = isSchedule && ev.title.trim() ? c!.name : undefined;
-                const categoryName = c?.name ?? NO_CATEGORY_LABEL;
-                const location = isSchedule ? null : ev.location;
-                const hue = c?.hue ?? null;
-                const hasStart = ev.start !== null;
-                const hasEnd = ev.end !== null;
-                const isLineOnly = !isSchedule && !hasStart && hasEnd;
-                const onClick = isSchedule
-                    ? () => openScheduleModalOccurrence(ev.scheduleId, dateIso)
-                    : () => openEventModalEdit(ev.id);
-                if (isLineOnly) {
-                    const endMin = timeToMinutes(ev.end);
-                    return {
-                        key: ev.id,
-                        isLine: true,
-                        title,
-                        hue,
-                        top: Math.max(0, (endMin / 60) * weekZoom),
-                        categoryName,
-                        location,
-                        clickable: true,
-                        onClick,
-                    };
-                }
-                let startMin: number;
-                let endMin: number;
-                let timeLabel: string;
-                if (!isSchedule && isOvernightEvent(ev)) {
-                    const isStartDay = ev.startDate === dateIso;
-                    if (isStartDay) {
-                        startMin = timeToMinutes(ev.start);
-                        endMin = 24 * 60;
-                        timeLabel = `${ev.start} →`;
-                    } else {
-                        startMin = 0;
-                        endMin = timeToMinutes(ev.end);
-                        timeLabel = `→ ${ev.end}`;
-                    }
-                } else {
-                    /** Untimed events never reach here (they live in the strip) and end-only ones returned above, so every block has a start. */
-                    startMin = timeToMinutes(ev.start);
-                    endMin = hasEnd ? timeToMinutes(ev.end) : startMin + 40;
-                    timeLabel = hasEnd ? `${ev.start}–${ev.end}` : (ev.start ?? '');
-                }
-                const top = Math.max(0, (startMin / 60) * weekZoom);
-                const height = Math.max(20, ((endMin - startMin) / 60) * weekZoom - 2);
-                return { key: ev.id, isLine: false, title, subtitle, hue, top, height, timeLabel, categoryName, location, clickable: true, onClick };
-            });
-
-            out.push({
-                label: WEEKDAY_LABELS[i],
-                dayNum: dt.getDate(),
-                dateIso,
-                isToday: sameDate(dt, today),
-                events: columnEvents,
-            });
-        }
-        return out;
-    }, [weekStart, events, categories, recurringWeek, weekZoom, today, openEventModalEdit, openScheduleModalOccurrence]);
-
-    const sortedDivisions = useMemo(
-        () => [...timeDivisions].sort((a, b) => timeToMinutes(a.value) - timeToMinutes(b.value)),
-        [timeDivisions],
-    );
-    const hourLabels = sortedDivisions.map((t) => ({ label: t.value, top: (timeToMinutes(t.value) / 60) * weekZoom - 6 }));
-    const divisionLines = sortedDivisions.map((t) => ({ top: (timeToMinutes(t.value) / 60) * weekZoom }));
+    const ppm = weekZoom / 60;
+    const hourLabels = Array.from({ length: 23 }, (_, i) => i + 1);
+    /** The user's time divisions (class periods): a ruled line across the paper, labelled in the margin when off the hour. */
+    const divisionMinutes = [...new Set(timeDivisions.map((t) => timeToMinutes(t.value)))].sort((a, b) => a - b);
+    const divisionTops = divisionMinutes.map((m) => m * ppm);
+    const divisionLabels = divisionMinutes.filter((m) => {
+        const offHour = m % 60;
+        return offHour !== 0 && Math.min(offHour, 60 - offHour) * ppm >= LABEL_CLEARANCE;
+    });
 
     /** The now line belongs only on the week that actually contains today. */
     const showNowLine = weekOffset === 0 && nowMinutes !== null;
-    const nowTop = ((nowMinutes ?? 0) / 60) * weekZoom;
+    const nowTop = (nowMinutes ?? 0) * ppm;
+    const nowLabel = nowMinutes === null ? '' : `${pad2(Math.floor(nowMinutes / 60))}:${pad2(nowMinutes % 60)}`;
     const todayColumn = (today.getDay() + 6) % 7;
 
-    const gridCols = '56px repeat(7,1fr)';
+    const paperStyle = { '--hour': `${weekZoom}px`, height: 24 * weekZoom } as CSSProperties;
 
     return (
-        <div style={{ minWidth: 820 }}>
-            <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: gridCols,
-                    borderBottom: `1px solid ${colors.border}`,
-                    position: 'sticky',
-                    top: 0,
-                    background: colors.pageBg,
-                    zIndex: 2,
-                }}
-            >
-                <div />
-                {weekDays.map((day, i) => (
-                    <div key={i} style={{ padding: '10px 8px', textAlign: 'center', borderLeft: `1px solid ${colors.border}` }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: colors.muted }}>{day.label}</div>
-                        <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2, color: day.isToday ? colors.accent : 'oklch(30% 0.01 95)' }}>
-                            {day.dayNum}
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {hasStripItems && (
-                <div style={{ display: 'grid', gridTemplateColumns: gridCols, borderBottom: `1px solid ${colors.border}`, padding: '5px 0' }}>
-                    <div />
-                    {weekStrip.map((items, i) => (
-                        <div key={i} style={{ padding: '0 3px', display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-                            {items.map((item) => (
-                                <div key={item.key} style={{ position: 'relative' }}>
-                                    <div
-                                        onClick={() => openEventModalEdit(item.eventId)}
-                                        onMouseEnter={() => setHoverEventKey(item.key)}
-                                        onMouseLeave={() => setHoverEventKey(null)}
-                                        style={{
-                                            background: softColor(item.hue),
-                                            color: softTextColor(item.hue),
-                                            borderLeft: `3px solid ${solidColor(item.hue)}`,
-                                            borderRadius: 6,
-                                            padding: '3px 6px',
-                                            fontSize: 10.5,
-                                            fontWeight: 700,
-                                            lineHeight: 1.25,
-                                            cursor: 'pointer',
-                                            display: '-webkit-box',
-                                            WebkitLineClamp: 2,
-                                            WebkitBoxOrient: 'vertical',
-                                            overflow: 'hidden',
-                                        }}
-                                    >
-                                        {item.title}
-                                    </div>
-                                    {hoverEventKey === item.key && (
-                                        <div
-                                            style={{
-                                                position: 'absolute',
-                                                left: 0,
-                                                top: '100%',
-                                                marginTop: 4,
-                                                maxWidth: '100%',
-                                                background: colors.tooltipBg,
-                                                color: '#fff',
-                                                fontSize: 10,
-                                                fontWeight: 600,
-                                                lineHeight: 1.35,
-                                                padding: '3px 7px',
-                                                borderRadius: 5,
-                                                pointerEvents: 'none',
-                                                zIndex: 5,
-                                            }}
-                                        >
-                                            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.categoryName}</div>
-                                            {item.location && (
-                                                <div style={{ opacity: 0.7, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                    {item.location}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+        <div className={s.root}>
+            <div className={s.scroller}>
+                <div className={s.sheet}>
+                    {/* The day names and the "sin hora" strip stay frozen at the top while the hours scroll. */}
+                    <div ref={headRef} className={s.frozen}>
+                        <div className={cx(s.cols, s.head)}>
+                            <div className={s.headGutter} />
+                            {days.map((day) => (
+                                <div key={day.dateIso} className={cx(s.headDay, day.isToday && s.headToday, day.isPast && s.headPast)}>
+                                    <span className={cx('pl-display', s.headNum, day.isToday && 'pl-marker')}>{day.dayNum}</span>
+                                    <span className={s.headLabel}>{day.isToday ? 'hoy' : day.label}</span>
                                 </div>
                             ))}
                         </div>
-                    ))}
-                </div>
-            )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: gridCols, position: 'relative' }}>
-                <div style={{ position: 'relative' }}>
-                    {hourLabels.map((h, i) => (
-                        <div key={i} style={{ position: 'absolute', top: h.top, right: 8, fontSize: 10.5, color: colors.mutedLight }}>
-                            {h.label}
+                        <div className={cx(s.cols, s.strip)}>
+                            <div className={s.stripGutter}>sin hora</div>
+                            {days.map((day, i) => (
+                                <WeekStripDay key={day.dateIso} day={day} alignEnd={i >= 5} />
+                            ))}
                         </div>
-                    ))}
+                    </div>
+
+                    <div ref={bodyRef} className={cx(s.cols, s.body)}>
+                        <div className={s.gutter}>
+                            {hourLabels.map((h) => (
+                                <div key={h} className={s.hourLabel} style={{ top: h * weekZoom - 6 }}>
+                                    {pad2(h)}:00
+                                </div>
+                            ))}
+                            {divisionLabels.map((m) => (
+                                <div key={m} className={s.divisionLabel} style={{ top: m * ppm - 6 }}>
+                                    {pad2(Math.floor(m / 60))}:{pad2(m % 60)}
+                                </div>
+                            ))}
+                            {divisionTops.map((top) => (
+                                <div key={top} className={s.divisionTick} style={{ top }} />
+                            ))}
+                        </div>
+                        {days.map((day, i) => (
+                            <WeekDayColumn
+                                key={day.dateIso}
+                                day={day}
+                                zoom={weekZoom}
+                                alignEnd={i >= 5}
+                                divisionTops={divisionTops}
+                                paperStyle={paperStyle}
+                            />
+                        ))}
+
+                        {showNowLine && (
+                            <div className={s.now} style={{ top: nowTop, '--today': todayColumn } as CSSProperties} aria-hidden="true">
+                                <div className={s.nowLabel}>{nowLabel}</div>
+                                <div className={s.nowTrack} />
+                                <div className={s.nowToday} />
+                            </div>
+                        )}
+                    </div>
                 </div>
-                {weekDays.map((day, i) => (
-                    <div
-                        key={i}
-                        onDoubleClick={() => openEventModalNew(null, day.dateIso)}
-                        style={{ position: 'relative', borderLeft: `1px solid ${colors.border}`, height: 24 * weekZoom }}
-                    >
-                        {divisionLines.map((dl, j) => (
-                            <div key={j} style={{ position: 'absolute', left: 0, right: 0, top: dl.top, height: 1, background: 'oklch(93% 0.004 95)' }} />
-                        ))}
-                        {day.events.map((ev) => (
-                            <Fragment key={ev.key}>
-                                {ev.isLine ? (
-                                    <div
-                                        onClick={ev.onClick}
-                                        onDoubleClick={(e) => e.stopPropagation()}
-                                        onMouseEnter={() => setHoverEventKey(ev.key)}
-                                        onMouseLeave={() => setHoverEventKey(null)}
-                                        style={{ position: 'absolute', left: 3, right: 3, top: ev.top - 14, cursor: 'pointer' }}
-                                    >
-                                        <div
-                                            style={{
-                                                fontSize: 10,
-                                                fontWeight: 700,
-                                                lineHeight: '12px',
-                                                marginBottom: 2,
-                                                color: solidColor(ev.hue),
-                                                whiteSpace: 'nowrap',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                            }}
-                                        >
-                                            {ev.title}
-                                        </div>
-                                        <div style={{ width: '100%', height: 3, background: solidColor(ev.hue), borderRadius: 2 }} />
-                                    </div>
-                                ) : (
-                                    <div
-                                        onClick={ev.clickable ? ev.onClick : undefined}
-                                        onDoubleClick={(e) => e.stopPropagation()}
-                                        onMouseEnter={() => setHoverEventKey(ev.key)}
-                                        onMouseLeave={() => setHoverEventKey(null)}
-                                        style={{
-                                            position: 'absolute',
-                                            left: 3,
-                                            right: 3,
-                                            top: ev.top,
-                                            height: ev.height,
-                                            background: softColor(ev.hue),
-                                            color: softTextColor(ev.hue),
-                                            borderLeft: `3px solid ${solidColor(ev.hue)}`,
-                                            borderRadius: 6,
-                                            padding: '4px 7px',
-                                            overflow: 'hidden',
-                                            cursor: ev.clickable ? 'pointer' : undefined,
-                                        }}
-                                    >
-                                        <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.25, overflow: 'hidden' }}>{ev.title}</div>
-                                        {ev.subtitle && (
-                                            <div
-                                                style={{
-                                                    fontSize: 9.5,
-                                                    fontWeight: 600,
-                                                    opacity: 0.65,
-                                                    marginTop: 1,
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                    whiteSpace: 'nowrap',
-                                                }}
-                                            >
-                                                {ev.subtitle}
-                                            </div>
-                                        )}
-                                        <div style={{ fontSize: 10, opacity: 0.75, marginTop: 1 }}>{ev.timeLabel}</div>
-                                    </div>
-                                )}
-                                {hoverEventKey === ev.key && (
-                                    <div
-                                        style={{
-                                            position: 'absolute',
-                                            left: 6,
-                                            top: ev.isLine ? ev.top - 18 : ev.top - 4,
-                                            transform: 'translateY(-100%)',
-                                            maxWidth: 'calc(100% - 12px)',
-                                            background: colors.tooltipBg,
-                                            color: '#fff',
-                                            fontSize: 10,
-                                            fontWeight: 600,
-                                            lineHeight: 1.35,
-                                            padding: '3px 7px',
-                                            borderRadius: 5,
-                                            pointerEvents: 'none',
-                                            zIndex: 5,
-                                        }}
-                                    >
-                                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.categoryName}</div>
-                                        {ev.location && (
-                                            <div style={{ opacity: 0.7, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                {ev.location}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </Fragment>
-                        ))}
-                    </div>
-                ))}
-                {showNowLine && (
-                    <div style={{ position: 'absolute', left: 56, right: 0, top: nowTop, pointerEvents: 'none', zIndex: 3 }}>
-                        <div style={{ height: 2, marginTop: -1, background: colors.nowLine, opacity: 0.85 }} />
-                        <div
-                            style={{
-                                position: 'absolute',
-                                top: -4,
-                                left: `calc(${todayColumn}/7*100%)`,
-                                width: 8,
-                                height: 8,
-                                borderRadius: '50%',
-                                background: colors.nowLine,
-                            }}
-                        />
-                    </div>
-                )}
             </div>
+
+            {trayOpen && <BacklogTray className={s.tray} onClose={() => setTrayOpen(false)} />}
         </div>
     );
 }

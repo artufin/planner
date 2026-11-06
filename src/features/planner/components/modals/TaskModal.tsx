@@ -8,8 +8,10 @@ import { usePlannerStore } from '../../store';
 import { useCategories } from '@/lib/api/categories';
 import { useEvents } from '@/lib/api/events';
 import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from '@/lib/api/tasks';
-import { apiErrorMessage } from '@/lib/api/http';
+import { toast } from '../../toast/toast';
+import type { PlannerTask } from '@/lib/api/types';
 import { taskFormSchema, type TaskFormValues } from '../../schemas';
+import s from './modal.module.css';
 
 export default function TaskModal() {
     const { data: categories = [] } = useCategories();
@@ -86,7 +88,7 @@ export default function TaskModal() {
     const taskEventLinkOptions = events.filter((e) => e.categoryId === categoryId || e.categoryId === null);
 
     const onSubmit = (values: TaskFormValues) => {
-        const onError = (e: unknown) => window.alert(apiErrorMessage(e));
+        const onError = toast.error;
         const payload = {
             categoryId: values.categoryId,
             eventId: values.eventId || null,
@@ -103,6 +105,22 @@ export default function TaskModal() {
         }
     };
 
+    /** Deletes at once and offers the way back, instead of asking first. The undo is a fresh copy (new id). */
+    const deleteWithUndo = (task: PlannerTask) => {
+        const { id, ...fields } = task;
+        closeTaskModal();
+        // mutateAsync: the modal is gone before the request settles, and mutate's callbacks die with it.
+        deleteTask
+            .mutateAsync(id)
+            .then(() =>
+                toast.show('Tarea eliminada', {
+                    label: 'Deshacer',
+                    onAction: () => void createTask.mutateAsync(fields).catch(toast.error),
+                }),
+            )
+            .catch(toast.error);
+    };
+
     return (
         <Modal
             asForm
@@ -112,15 +130,7 @@ export default function TaskModal() {
             footer={
                 <>
                     {editingTask ? (
-                        <Button
-                            variant="danger"
-                            onClick={() =>
-                                deleteTask.mutate(editingTask.id, {
-                                    onSuccess: closeTaskModal,
-                                    onError: (e) => window.alert(apiErrorMessage(e)),
-                                })
-                            }
-                        >
+                        <Button variant="danger" onClick={() => deleteWithUndo(editingTask)}>
                             Eliminar
                         </Button>
                     ) : (
@@ -136,39 +146,44 @@ export default function TaskModal() {
                 options={categories.map((c) => ({ value: c.id, label: c.name }))}
                 {...register('categoryId')}
             />
-            <TextField
-                label="Fecha (opcional)"
-                type="date"
-                hint={!date ? 'Sin fecha, la tarea queda en el backlog hasta que le asignes un día.' : undefined}
-                {...register('date')}
-            />
-            <SelectField
-                label="Asociar a evento (opcional)"
-                placeholder="Ninguno"
-                options={taskEventLinkOptions.map((e) => ({ value: e.id, label: e.title }))}
-                {...register('eventId')}
-            />
-            {date && <Checkbox label="Incluir horario" {...register('hasTime')} />}
-            {date && hasTime && (
-                <div style={{ display: 'flex', gap: 'var(--pl-space-lg)' }}>
-                    <div style={{ flex: 1 }}>
+            <div className={s.group} role="group" aria-labelledby="task-when">
+                <p className={s.groupTitle} id="task-when">Cuándo hacerla</p>
+                <TextField
+                    label="Día"
+                    optional
+                    type="date"
+                    hint={!date ? 'Sin día, la tarea queda en el backlog hasta que le asignes uno.' : undefined}
+                    {...register('date')}
+                />
+                {date && <Checkbox label="Con horario" {...register('hasTime')} />}
+                {date && hasTime && (
+                    <div className={s.row}>
                         <Controller
                             name="startTime"
                             control={control}
-                            render={({ field }) => <TimeInput label="Hora inicio" value={field.value} onChange={field.onChange} />}
+                            render={({ field }) => <TimeInput label="Inicio" value={field.value} onChange={field.onChange} />}
                         />
-                    </div>
-                    <div style={{ flex: 1 }}>
                         <Controller
                             name="endTime"
                             control={control}
-                            render={({ field }) => <TimeInput label="Hora término" value={field.value} onChange={field.onChange} />}
+                            render={({ field }) => <TimeInput label="Término" value={field.value} onChange={field.onChange} />}
                         />
                     </div>
-                </div>
-            )}
-            <Checkbox label="Incluir fecha límite (deadline)" {...register('hasDeadline')} />
-            {hasDeadline && <TextField label="Fecha límite" type="date" {...register('deadline')} />}
+                )}
+            </div>
+            <div className={s.group} role="group" aria-labelledby="task-due">
+                <p className={s.groupTitle} id="task-due">Para cuándo es</p>
+                <SelectField
+                    label="Evento asociado"
+                    optional
+                    placeholder="Ninguno"
+                    hint="Al asociarla a un evento, la fecha del evento pasa a ser su fecha límite."
+                    options={taskEventLinkOptions.map((e) => ({ value: e.id, label: e.title }))}
+                    {...register('eventId')}
+                />
+                <Checkbox label="Tiene fecha límite" {...register('hasDeadline')} />
+                {hasDeadline && <TextField label="Fecha límite" type="date" {...register('deadline')} />}
+            </div>
         </Modal>
     );
 }

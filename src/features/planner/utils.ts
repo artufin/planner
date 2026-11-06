@@ -194,3 +194,21 @@ export function getRangeLabel(view: ViewName, today: Date, monthOffset: number, 
     const md = getMonthAnchor(today, monthOffset);
     return `${MONTH_NAMES[md.getMonth()]} ${md.getFullYear()}`;
 }
+
+/** 615 → "10:15". Clamps to the day so a block dragged past midnight stops at 23:59. */
+export function minutesToTime(minutes: number): string {
+    const m = Math.max(0, Math.min(24 * 60 - 1, Math.round(minutes)));
+    return `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`;
+}
+
+/** Shifts an ISO 'YYYY-MM-DD' date by whole days. */
+export function addDaysIso(iso: string, days: number): string {
+    const { y, m, d } = inputToDate(iso);
+    const dt = new Date(y, m, d + days);
+    return dateToInput(dt.getFullYear(), dt.getMonth(), dt.getDate());
+}
+
+/** Whole days from `from` to `to` (negative when `to` is earlier). */
+export function daysBetween(from: string, to: string): number {
+    return Math.round((isoDval(to) - isoDval(from)) / 86400000);
+}

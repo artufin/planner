@@ -1,53 +1,72 @@
+import { categoryColor } from './palette.js';
+
 /**
  * The planner palette, as JS values mirroring the `--pl-color-*` custom
  * properties in `styles.css`. Prefer the CSS variables in stylesheets; these
  * exist for the cases where a value has to be computed in JS.
  */
 export const colors = {
-    pageBg: 'oklch(98% 0.004 95)',
+    pageBg: 'oklch(98.4% 0.006 235)',
     surface: '#fff',
-    text: 'oklch(22% 0.01 95)',
-    textStrong: 'oklch(30% 0.01 95)',
-    textSecondary: 'oklch(40% 0.01 95)',
-    textNav: 'oklch(35% 0.01 95)',
-    textFaint: 'oklch(68% 0.005 95)',
-    sidebarBg: 'oklch(96.5% 0.005 95)',
-    border: 'oklch(89% 0.004 95)',
-    borderStrong: 'oklch(87% 0.004 95)',
-    rule: 'oklch(85% 0.005 95)',
-    checkboxBorder: 'oklch(75% 0.01 95)',
-    accent: 'oklch(56% 0.16 255)',
-    accentSoftBg: 'oklch(92% 0.02 255)',
-    accentText: 'oklch(48% 0.16 255)',
-    muted: 'oklch(55% 0.01 95)',
-    mutedLight: 'oklch(60% 0.01 95)',
-    label: 'oklch(50% 0.01 95)',
-    dangerBorder: 'oklch(90% 0.03 25)',
-    dangerText: 'oklch(50% 0.15 25)',
-    warnText: 'oklch(52% 0.14 70)',
-    chipBg: 'oklch(95% 0.004 95)',
-    fieldText: 'oklch(25% 0.01 95)',
-    controlBg: 'oklch(94% 0.004 95)',
-    nowLine: 'oklch(58% 0.19 25)',
-    tooltipBg: 'oklch(20% 0.01 95)',
+    ink: 'oklch(27% 0.075 264)',
+    text: 'oklch(27% 0.075 264)',
+    textStrong: 'oklch(30% 0.07 264)',
+    textSecondary: 'oklch(42% 0.05 262)',
+    textNav: 'oklch(36% 0.06 262)',
+    textFaint: 'oklch(71% 0.02 250)',
+    sidebarBg: 'oklch(96.4% 0.011 245)',
+    border: 'oklch(90.5% 0.017 238)',
+    borderStrong: 'oklch(85.5% 0.022 240)',
+    rule: 'oklch(83% 0.025 240)',
+    grid: 'oklch(93.6% 0.02 228)',
+    margin: 'oklch(78% 0.1 22)',
+    checkboxBorder: 'oklch(70% 0.035 258)',
+    accent: 'oklch(38% 0.15 266)',
+    accentSoftBg: 'oklch(94.5% 0.028 262)',
+    accentText: 'oklch(33% 0.13 266)',
+    highlight: 'oklch(93.5% 0.165 106)',
+    highlightSoft: 'oklch(97% 0.07 106)',
+    highlightStrong: 'oklch(89% 0.185 104)',
+    muted: 'oklch(55% 0.03 256)',
+    mutedLight: 'oklch(62% 0.025 255)',
+    label: 'oklch(50% 0.035 258)',
+    dangerBorder: 'oklch(87% 0.06 27)',
+    dangerText: 'oklch(52% 0.2 27)',
+    dangerSoftBg: 'oklch(96.8% 0.022 27)',
+    warnText: 'oklch(54% 0.14 62)',
+    chipBg: 'oklch(95.6% 0.011 245)',
+    fieldText: 'oklch(28% 0.07 264)',
+    controlBg: 'oklch(94% 0.013 245)',
+    nowLine: 'oklch(57% 0.21 27)',
+    tooltipBg: 'oklch(25% 0.075 264)',
 } as const;
 
-/** The eight category hues a user can pick from. */
-export const HUE_SWATCHES = [255, 165, 70, 300, 20, 340, 190, 120];
+export { CATEGORY_PALETTE, HUE_SWATCHES, categoryColor, colorName, colorDistance, similarColors, suggestHue } from './palette.js';
+export type { CategoryColor } from './palette.js';
 
-/** A null hue means "no category" — rendered in neutral gray instead of a category color. */
+/**
+ * Category colors. A hue that is a palette key (see palette.ts) gets its
+ * hand-tuned color; anything else falls back to one formula on the hue angle.
+ * A null hue means "no category" — rendered in neutral gray.
+ */
 export function solidColor(hue: number | null): string {
-    return hue === null ? 'oklch(62% 0.012 95)' : `oklch(56% 0.16 ${hue})`;
+    if (hue === null) return 'oklch(62% 0.02 255)';
+    const p = categoryColor(hue);
+    return p ? `oklch(${p.l} ${p.c} ${p.h})` : `oklch(57% 0.15 ${hue})`;
 }
 
-/** The tinted background that pairs with `solidColor` at the same hue. */
+/** The tinted background that pairs with `solidColor`. */
 export function softColor(hue: number | null): string {
-    return hue === null ? 'oklch(94% 0.004 95)' : `oklch(93% 0.035 ${hue})`;
+    if (hue === null) return 'oklch(95% 0.008 250)';
+    const p = categoryColor(hue);
+    return p ? `oklch(95.5% ${Math.min(0.026, p.c * 0.18).toFixed(3)} ${p.h})` : `oklch(95% 0.032 ${hue})`;
 }
 
-/** Readable text on top of `softColor` at the same hue. */
+/** Readable text on top of `softColor` (and on white). */
 export function softTextColor(hue: number | null): string {
-    return hue === null ? 'oklch(40% 0.01 95)' : `oklch(38% 0.1 ${hue})`;
+    if (hue === null) return 'oklch(40% 0.03 258)';
+    const p = categoryColor(hue);
+    return p ? `oklch(40% ${Math.min(0.085, p.c * 0.65).toFixed(3)} ${p.h})` : `oklch(37% 0.1 ${hue})`;
 }
 
 /**

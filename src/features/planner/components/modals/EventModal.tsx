@@ -7,10 +7,12 @@ import { Button, Checkbox, Modal, SelectField, TextField, TimeInput } from '@pla
 import { usePlannerStore } from '../../store';
 import { useCategories } from '@/lib/api/categories';
 import { useEvents, useCreateEvent, useUpdateEvent, useDeleteEvent, useDuplicateEvent } from '@/lib/api/events';
-import { useCreateTask } from '@/lib/api/tasks';
-import { apiErrorMessage } from '@/lib/api/http';
+import { useCreateTask, useTasks, useUpdateTask } from '@/lib/api/tasks';
+import type { PlannerEvent } from '@/lib/api/types';
+import { toast } from '../../toast/toast';
 import { eventFormSchema, type EventFormValues } from '../../schemas';
 import { dateToInput, inputToDate, timeToMinutes } from '../../utils';
+import s from './modal.module.css';
 
 export default function EventModal() {
     const { data: categories = [] } = useCategories();
@@ -22,6 +24,8 @@ export default function EventModal() {
     const deleteEvent = useDeleteEvent();
     const duplicateEvent = useDuplicateEvent();
     const createTask = useCreateTask();
+    const updateTask = useUpdateTask();
+    const { data: tasks = [] } = useTasks();
 
     const editingEvent = eventModal.editingId ? events.find((e) => e.id === eventModal.editingId) : undefined;
 
@@ -61,11 +65,15 @@ export default function EventModal() {
     const hasStartTime = watch('hasStartTime');
     const hasEndTime = watch('hasEndTime');
     const categoryId = watch('categoryId');
+    const startTime = watch('startTime');
+    const endTime = watch('endTime');
     /** Mirrors utils.isDeadlineEvent: an end time with no start time reads as a due time rather than a scheduled block. */
     const isDeadlineEvent = !hasStartTime && hasEndTime;
+    /** Display only — mirrors the overnight rule in onSubmit. */
+    const endsNextDay = hasStartTime && hasEndTime && timeToMinutes(endTime) < timeToMinutes(startTime);
 
     const onSubmit = (values: EventFormValues) => {
-        const onError = (e: unknown) => window.alert(apiErrorMessage(e));
+        const onError = toast.error;
         const { y, m, d } = inputToDate(values.startDate);
         /** An end time earlier than the start time means the event runs past midnight into the next day. */
         const overnight = values.hasStartTime && values.hasEndTime && timeToMinutes(values.endTime) < timeToMinutes(values.startTime);
@@ -111,6 +119,31 @@ export default function EventModal() {
         });
     };
 
+    /**
+     * Deletes at once and offers the way back, instead of asking first. The DB
+     * unlinks the event's tasks, so the undo re-creates the event (new id) and
+     * links those tasks to it again.
+     */
+    const deleteWithUndo = (event: PlannerEvent) => {
+        const { id, ...fields } = event;
+        const linkedTaskIds = tasks.filter((t) => t.eventId === id).map((t) => t.id);
+        closeEventModal();
+        // mutateAsync: the modal is gone before the request settles, and mutate's callbacks die with it.
+        const undo = async () => {
+            const created = await createEvent.mutateAsync(fields);
+            await Promise.all(linkedTaskIds.map((taskId) => updateTask.mutateAsync({ id: taskId, eventId: created.id })));
+        };
+        deleteEvent
+            .mutateAsync(id)
+            .then(() =>
+                toast.show('Evento eliminado', {
+                    label: 'Deshacer',
+                    onAction: () => void undo().catch(toast.error),
+                }),
+            )
+            .catch(toast.error);
+    };
+
     return (
         <Modal
             asForm
@@ -120,16 +153,8 @@ export default function EventModal() {
             footer={
                 <>
                     {editingEvent ? (
-                        <div style={{ display: 'flex', gap: 'var(--pl-space-md)' }}>
-                            <Button
-                                variant="danger"
-                                onClick={() =>
-                                    deleteEvent.mutate(editingEvent.id, {
-                                        onSuccess: closeEventModal,
-                                        onError: (e) => window.alert(apiErrorMessage(e)),
-                                    })
-                                }
-                            >
+                        <div className={s.footerStart}>
+                            <Button variant="danger" onClick={() => deleteWithUndo(editingEvent)}>
                                 Eliminar
                             </Button>
                             <Button
@@ -137,7 +162,7 @@ export default function EventModal() {
                                 onClick={() =>
                                     duplicateEvent.mutate(editingEvent.id, {
                                         onSuccess: closeEventModal,
-                                        onError: (e) => window.alert(apiErrorMessage(e)),
+                                        onError: toast.error,
                                     })
                                 }
                             >
@@ -152,31 +177,53 @@ export default function EventModal() {
             }
         >
             <TextField label="Título" placeholder="ej. Entrega de informe" {...register('title')} />
-            <SelectField
-                label="Categoría (opcional)"
-                placeholder="Sin categoría"
-                options={categories.map((c) => ({ value: c.id, label: c.name }))}
-                {...register('categoryId')}
-            />
-            <TextField label="Ubicación (opcional)" placeholder="ej. Sala 204" {...register('location')} />
-            <TextField label="Fecha" type="date" {...register('startDate')} />
-            <Checkbox label="Incluir hora de inicio" {...register('hasStartTime')} />
-            {hasStartTime && (
-                <Controller
-                    name="startTime"
-                    control={control}
-                    render={({ field }) => <TimeInput label="Hora inicio" value={field.value} onChange={field.onChange} />}
+            <div className={s.row}>
+                <SelectField
+                    label="Categoría"
+                    optional
+                    placeholder="Sin categoría"
+                    options={categories.map((c) => ({ value: c.id, label: c.name }))}
+                    {...register('categoryId')}
                 />
-            )}
-            <Checkbox label="Incluir hora de término" {...register('hasEndTime')} />
-            {hasEndTime && (
-                <Controller
-                    name="endTime"
-                    control={control}
-                    render={({ field }) => <TimeInput label="Hora término" value={field.value} onChange={field.onChange} />}
-                />
-            )}
-            {isDeadlineEvent && !editingEvent && categoryId && <Checkbox label="Crear tarea" {...register('createTask')} />}
+                <TextField label="Ubicación" optional placeholder="ej. Sala 204" {...register('location')} />
+            </div>
+            <div className={s.group} role="group" aria-labelledby="event-when">
+                <p className={s.groupTitle} id="event-when">Cuándo</p>
+                <TextField label="Fecha" type="date" {...register('startDate')} />
+                <div className={s.row}>
+                    <div className={s.toggleSlot}>
+                        <Checkbox label="Hora de inicio" {...register('hasStartTime')} />
+                        {hasStartTime && (
+                            <Controller
+                                name="startTime"
+                                control={control}
+                                render={({ field }) => (
+                                    <TimeInput aria-label="Hora de inicio" value={field.value} onChange={field.onChange} />
+                                )}
+                            />
+                        )}
+                    </div>
+                    <div className={s.toggleSlot}>
+                        <Checkbox label="Hora de término" {...register('hasEndTime')} />
+                        {hasEndTime && (
+                            <Controller
+                                name="endTime"
+                                control={control}
+                                render={({ field }) => (
+                                    <TimeInput aria-label="Hora de término" value={field.value} onChange={field.onChange} />
+                                )}
+                            />
+                        )}
+                    </div>
+                </div>
+                {endsNextDay && <p className={s.note}>Termina al día siguiente.</p>}
+                {isDeadlineEvent && (
+                    <p className={s.note}>Solo con hora de término, el evento se guarda como una entrega con hora límite.</p>
+                )}
+                {isDeadlineEvent && !editingEvent && categoryId && (
+                    <Checkbox label="Crear también una tarea para esta entrega" {...register('createTask')} />
+                )}
+            </div>
         </Modal>
     );
 }

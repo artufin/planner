@@ -11,16 +11,24 @@ export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement
 /**
  * A checkbox and its text on one clickable row — how the planner's modals
  * toggle optional sections ("Incluir horario", "Incluir fecha límite").
+ * The box is drawn and ticked with a pen stroke; the native input stays on
+ * top of it (transparent), so keyboard, forms and `register()` work unchanged.
  */
 export function Checkbox({ label, labelClassName, className, disabled, ...rest }: CheckboxProps) {
     return (
         <label className={cx('pl-checkbox', disabled && 'pl-checkbox--disabled', labelClassName)}>
-            <input
-                type="checkbox"
-                className={cx('pl-checkbox__input', className)}
-                disabled={disabled}
-                {...rest}
-            />
+            <span className="pl-checkbox__control">
+                <input
+                    type="checkbox"
+                    className={cx('pl-checkbox__input', className)}
+                    disabled={disabled}
+                    {...rest}
+                />
+                <span className="pl-checkbox__box" aria-hidden="true" />
+                <svg className="pl-checkbox__tick" viewBox="0 0 19 19" aria-hidden="true">
+                    <path d="M2.5 10.5 L6.5 15 L17 2.5" pathLength={26} />
+                </svg>
+            </span>
             <span>{label}</span>
         </label>
     );

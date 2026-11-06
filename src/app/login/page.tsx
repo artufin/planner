@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, type CSSProperties, type FormEvent } from 'react';
-import { Button, Card, TextField, colors } from '@planner/ui';
+import { useState, useSyncExternalStore, type FormEvent } from 'react';
+import { Button, TextField } from '@planner/ui';
+import styles from './login.module.css';
 
 /** Only same-origin paths, so a crafted `?next=` can't bounce the user off-site after login. */
 function safeNext(): string {
@@ -11,20 +12,20 @@ function safeNext(): string {
     return next;
 }
 
-const pageStyle: CSSProperties = {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: colors.pageBg,
-    color: colors.text,
-    padding: 20,
-};
+const dateFormatter = new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'long' });
+const noopSubscribe = () => () => {};
+const todayLabel = () => dateFormatter.format(new Date());
+
+/** Today's date, written at the top of the page like in a notebook. Client-only, so server markup never disagrees with the user's clock. */
+function useTodayLabel(): string {
+    return useSyncExternalStore(noopSubscribe, todayLabel, () => '');
+}
 
 export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [pending, setPending] = useState(false);
+    const date = useTodayLabel();
 
     async function onSubmit(event: FormEvent) {
         event.preventDefault();
@@ -51,24 +52,30 @@ export default function LoginPage() {
     }
 
     return (
-        <main style={pageStyle}>
-            <Card style={{ width: 320, padding: 24, boxShadow: '0 12px 32px oklch(0% 0 0 / 0.08)' }}>
-                <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div style={{ fontSize: 16, fontWeight: 700 }}>Planner :)</div>
-                    <TextField
-                        label="Contraseña"
-                        type="password"
-                        autoFocus
-                        autoComplete="current-password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        error={error ?? undefined}
-                    />
-                    <Button type="submit" disabled={pending || !password}>
-                        {pending ? 'Entrando…' : 'Entrar'}
-                    </Button>
-                </form>
-            </Card>
+        <main className={styles.page}>
+            <div className={styles.stack}>
+                <div className={styles.sheet}>
+                    <div className={styles.head}>
+                        <p className={styles.date}>{date}</p>
+                        <h1 className={styles.wordmark}>Planner</h1>
+                        <p className={styles.greeting}>Hola de nuevo :)</p>
+                    </div>
+                    <form onSubmit={onSubmit} className={styles.form}>
+                        <TextField
+                            label="Contraseña"
+                            type="password"
+                            autoFocus
+                            autoComplete="current-password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            error={error ?? undefined}
+                        />
+                        <Button type="submit" className={styles.submit} disabled={pending || !password}>
+                            {pending ? 'Entrando…' : 'Entrar'}
+                        </Button>
+                    </form>
+                </div>
+            </div>
         </main>
     );
 }
