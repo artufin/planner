@@ -2,7 +2,7 @@
 
 import { useRef, useState, type CSSProperties } from 'react';
 import { useDndMonitor, type DragMoveEvent, type DragOverEvent } from '@dnd-kit/core';
-import { cx } from '@planner/ui';
+import { cx } from '@/components/ui';
 import { usePlannerStore } from '../../../store';
 import { minutesToTime } from '../../../utils';
 import {

@@ -1,6 +1,3 @@
-packages:
-  - packages/*
-
 onlyBuiltDependencies:
   - '@prisma/engines'
   - prisma

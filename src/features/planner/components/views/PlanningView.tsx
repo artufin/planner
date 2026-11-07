@@ -1,7 +1,7 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { cx, hueVars } from '@planner/ui';
+import { cx, hueVars } from '@/components/ui';
 import { usePlannerStore } from '../../store';
 import { useCategories } from '@/lib/api/categories';
 import { useEvents } from '@/lib/api/events';

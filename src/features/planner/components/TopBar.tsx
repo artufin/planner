@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, IconButton, SegmentedControl, Swatch, cx } from '@planner/ui';
+import { Button, IconButton, SegmentedControl, Swatch, cx } from '@/components/ui';
 import { usePlannerStore } from '../store';
 import { useCategories } from '@/lib/api/categories';
 import { useTasks } from '@/lib/api/tasks';

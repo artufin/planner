@@ -8,7 +8,7 @@ import { useEvents } from '@/lib/api/events';
 import { useSchedule, useScheduleExceptions } from '@/lib/api/schedule';
 import { useTasks } from '@/lib/api/tasks';
 import { useTimeDivisions } from '@/lib/api/timeDivisions';
-import { cx } from '@planner/ui';
+import { cx } from '@/components/ui';
 import { getWeekStart, pad2, recurringForRange, timeToMinutes } from '../../utils';
 import { useNowMinutes, useToday } from '../../useToday';
 import BacklogTray from '../BacklogTray';

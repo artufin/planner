@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { cx } from '@planner/ui';
+import { cx } from '@/components/ui';
 import { readStoredSidebarCollapsed, usePlannerStore } from '../store';
 import { MONTH_NAMES, WEEKDAY_OPTIONS } from '../constants';
 import { useToday } from '../useToday';

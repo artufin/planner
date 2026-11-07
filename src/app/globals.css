@@ -1,4 +1,4 @@
-/* App-level resets. Design values come from @planner/ui — imported before this
+/* App-level resets. Design values come from src/components/ui/styles.css — imported before this
    file in layout.tsx — so everything here reads its tokens rather than
    restating them. */
 

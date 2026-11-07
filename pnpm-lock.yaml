@@ -17,9 +17,6 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.72.0(react@19.2.3))
-      '@planner/ui':
-        specifier: workspace:*
-        version: link:packages/ui
       '@prisma/adapter-pg':
         specifier: ^7.10.0
         version: 7.10.0
@@ -75,15 +72,6 @@ importers:
       typescript:
         specifier: ^5
         version: 5.9.3
-
-  packages/ui:
-    dependencies:
-      react:
-        specifier: '>=18'
-        version: 19.2.3
-      react-dom:
-        specifier: '>=18'
-        version: 19.2.3(react@19.2.3)
 
 packages:
 

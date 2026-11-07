@@ -1,6 +1,6 @@
 'use client';
 
-import { Modal } from '@planner/ui';
+import { Modal } from '@/components/ui';
 import { usePlannerStore } from '../store';
 import { SHORTCUTS } from '../useShortcuts';
 import s from './ShortcutsDialog.module.css';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, type ReactNode } from 'react';
-import { Button, Modal } from '@planner/ui';
+import { Button, Modal } from '@/components/ui';
 import s from './ConfirmDialog.module.css';
 
 export interface ConfirmDialogProps {

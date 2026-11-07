@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Checkbox, Modal, SelectField, TextField, TimeInput } from '@planner/ui';
+import { Button, Checkbox, Modal, SelectField, TextField, TimeInput } from '@/components/ui';
 import { usePlannerStore } from '../../store';
 import { useCategories } from '@/lib/api/categories';
 import { useEvents, useCreateEvent, useUpdateEvent, useDeleteEvent, useDuplicateEvent } from '@/lib/api/events';

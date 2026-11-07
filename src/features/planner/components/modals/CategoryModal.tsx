@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, HuePicker, Modal, SelectField, TextField, suggestHue } from '@planner/ui';
+import { Button, HuePicker, Modal, SelectField, TextField, suggestHue } from '@/components/ui';
 import { usePlannerStore } from '../../store';
 import { useCategories, useCreateCategory, useUpdateCategory } from '@/lib/api/categories';
 import { useGroups } from '@/lib/api/groups';

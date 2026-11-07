@@ -21,7 +21,7 @@ import {
     type DragStartEvent,
     type UniqueIdentifier,
 } from '@dnd-kit/core';
-import { hueVars } from '@planner/ui';
+import { hueVars } from '@/components/ui';
 import { useMoveItem } from './useMoveItem';
 import { accepts } from './moves';
 import type { DragItem, DropTarget } from './types';

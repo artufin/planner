@@ -1,6 +1,6 @@
 'use client';
 
-import { TaskCard, type DeadlineTone } from '@planner/ui';
+import { TaskCard, type DeadlineTone } from '@/components/ui';
 import type { Category, PlannerTask } from '@/lib/api/types';
 import { usePlannerStore } from '../store';
 import { useUpdateTask } from '@/lib/api/tasks';

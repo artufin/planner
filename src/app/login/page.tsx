@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useSyncExternalStore, type FormEvent } from 'react';
-import { Button, TextField } from '@planner/ui';
+import { Button, TextField } from '@/components/ui';
 import styles from './login.module.css';
 
 /** Only same-origin paths, so a crafted `?next=` can't bounce the user off-site after login. */

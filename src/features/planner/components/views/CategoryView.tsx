@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, type CSSProperties } from 'react';
-import { Button, cx, hueVars } from '@planner/ui';
+import { Button, cx, hueVars } from '@/components/ui';
 import { usePlannerStore } from '../../store';
 import { useCategories } from '@/lib/api/categories';
 import { useGroups } from '@/lib/api/groups';

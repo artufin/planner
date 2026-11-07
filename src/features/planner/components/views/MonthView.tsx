@@ -6,7 +6,7 @@ import { usePlannerStore } from '../../store';
 import { useCategories } from '@/lib/api/categories';
 import { useEvents } from '@/lib/api/events';
 import { useTasks, useUpdateTask } from '@/lib/api/tasks';
-import { cx, hueVars } from '@planner/ui';
+import { cx, hueVars } from '@/components/ui';
 import { MONTH_NAMES, NO_CATEGORY_LABEL } from '../../constants';
 import {
     categoryById,

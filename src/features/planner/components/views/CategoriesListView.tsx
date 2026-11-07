@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Button, CategoryCard, SectionDivider, cx } from '@planner/ui';
+import { Button, CategoryCard, SectionDivider, cx } from '@/components/ui';
 import { usePlannerStore } from '../../store';
 import { useGroups } from '@/lib/api/groups';
 import { useCategories } from '@/lib/api/categories';

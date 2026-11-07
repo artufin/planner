@@ -16,8 +16,7 @@ Planner is a single-page academic planner: month/week calendar, a weekly plannin
 board (to-dos), courses ("categorías") grouped into custom groups, per-course
 weekly schedules, and a settings area for groups/categories/event types/time
 divisions. The whole app lives under `src/features/planner/` and renders at `/`
-(`src/app/page.tsx`), matching the [Claude Design mockup](https://claude.ai/design/p/039cb8ef-8459-4251-bbec-b31427417c91)
-it was built from.
+(`src/app/page.tsx`).
 
 ```
 src/features/planner/
@@ -43,12 +42,12 @@ There is no backend call on the golden path — the app works fully offline.
 
 ## Library decisions
 
-The project was refactored from an earlier FullCalendar + Prisma skeleton to
-match the mockup above. Some previously-installed dependencies are no longer
+The project was refactored from an earlier FullCalendar + Prisma skeleton into
+the current custom UI. Some previously-installed dependencies are no longer
 wired into the app; they're kept installed (not removed) in case a future
 iteration reintroduces server-backed sync, but they're currently dead weight:
 
-- **Prisma / `@prisma/client`** — the mockup and this refactor use
+- **Prisma / `@prisma/client`** — this refactor uses
   `localStorage` exclusively for persistence. `prisma/schema.prisma` and
   `src/lib/prisma.ts` are untouched but unused. The old `src/app/api/events`
   route was removed: it called `new PrismaClient()` with no datasource
@@ -63,7 +62,7 @@ iteration reintroduces server-backed sync, but they're currently dead weight:
   nothing to do right now.
 
 `@fullcalendar/*` (react, daygrid, timegrid, interaction) was removed
-outright rather than kept dead: the mockup's month and week grids are fully
+outright rather than kept dead: the month and week grids are fully
 custom (a week view with an untimed/deadline strip and
 user-configurable, non-uniform time divisions, independent zoom, and
 per-occurrence schedule exceptions) which doesn't map cleanly onto
@@ -81,7 +80,7 @@ Actively used, and why:
   schedule, course) validate through `zodResolver` against the schemas in
   `schemas.ts`.
 - **Tailwind CSS** — available for base styling; the planner UI itself
-  mirrors the mockup's `oklch()`-based inline styles directly (course colors
+  uses `oklch()`-based styles directly (course colors
   are computed per-hue at runtime, which isn't expressible as static
   Tailwind utility classes).
 

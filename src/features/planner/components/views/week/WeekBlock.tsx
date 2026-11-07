@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type CSSProperties, type ReactNode } from 'react';
-import { cx, hueVars } from '@planner/ui';
+import { cx, hueVars } from '@/components/ui';
 import { usePlannerStore } from '../../../store';
 import { useUpdateTask } from '@/lib/api/tasks';
 import { toast } from '../../../toast/toast';

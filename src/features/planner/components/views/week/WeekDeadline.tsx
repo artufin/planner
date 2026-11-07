@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type CSSProperties } from 'react';
-import { cx, hueVars } from '@planner/ui';
+import { cx, hueVars } from '@/components/ui';
 import { usePlannerStore } from '../../../store';
 import { usePlannerDraggable, type EventDrag } from '../../../dnd';
 import type { DeadlineMark } from './model';

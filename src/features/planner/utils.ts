@@ -1,10 +1,10 @@
 import type { Category, PlannerEvent, PlannerTask, ScheduleException, ScheduleItem } from '@/lib/api/types';
-import type { DeadlineTone } from '@planner/ui';
+import type { DeadlineTone } from '@/components/ui';
 import { MONTH_NAMES } from './constants';
 import type { ViewName } from './types';
 
-/** The category-color helpers live in the design system now — re-exported here so callers keep one import. */
-export { solidColor, softColor, softTextColor } from '@planner/ui';
+/** The category-color helpers live in components/ui — re-exported here so callers keep one import. */
+export { solidColor, softColor, softTextColor } from '@/components/ui';
 export type { DeadlineTone };
 
 /** A schedule slot's title, falling back to the category name when left blank. */

@@ -3,9 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build:ui": "node packages/ui/build.mjs",
-    "dev": "pnpm build:ui && next dev",
-    "build": "prisma generate && pnpm build:ui && next build",
+    "dev": "next dev",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint"
   },
@@ -13,7 +12,6 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.2.2",
-    "@planner/ui": "workspace:*",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.5.0",
     "@tanstack/react-query": "^5.95.2",

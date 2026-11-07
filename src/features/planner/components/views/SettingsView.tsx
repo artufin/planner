@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { Button, IconButton, SectionDivider, Swatch, TimeInput, cx } from '@planner/ui';
+import { Button, IconButton, SectionDivider, Swatch, TimeInput, cx } from '@/components/ui';
 import { usePlannerStore } from '../../store';
 import { useGroups, useRenameGroup, useCreateGroup, useDeleteGroup } from '@/lib/api/groups';
 import { useCategories, useUpdateCategory } from '@/lib/api/categories';

@@ -1,6 +1,6 @@
 'use client';
 
-import { cx } from '@planner/ui';
+import { cx } from '@/components/ui';
 import { useToastStore } from './toast';
 import s from './Toaster.module.css';
 

@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { cx, hueVars } from '@planner/ui';
+import { cx, hueVars } from '@/components/ui';
 import type { TipInfo } from './model';
 import s from '../WeekView.module.css';
 
