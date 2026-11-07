@@ -1,92 +1,138 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Planner
 
-## Getting Started
+A personal academic planner: month and week calendar, a weekly planning board
+for to-dos, subjects ("materias") organised into groups, recurring class
+schedules, and a settings area for all of it. Single user, Spanish UI.
 
-First, run the development server:
+Next.js (App Router) on the front, Next.js route handlers + Prisma + Postgres
+behind it, a shared password in front of both.
+
+## Getting started
+
+Requirements: Node, pnpm (the version is pinned in `package.json`'s
+`packageManager`), and a Postgres database.
 
 ```bash
+pnpm install
+cp .env.example .env        # then fill it in, see below
+pnpm prisma generate
+pnpm prisma migrate deploy  # or `migrate dev` while changing the schema
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). You'll be sent to
+`/login` first.
 
-## App overview
+| variable | what it is |
+|---|---|
+| `DATABASE_URL` | Postgres connection string |
+| `APP_PASSWORD` | the shared password `/login` asks for |
+| `AUTH_SECRET` | key that signs the session cookie (`openssl rand -base64 32`) |
 
-Planner is a single-page academic planner: month/week calendar, a weekly planning
-board (to-dos), courses ("categorías") grouped into custom groups, per-course
-weekly schedules, and a settings area for groups/categories/event types/time
-divisions. The whole app lives under `src/features/planner/` and renders at `/`
-(`src/app/page.tsx`).
+Scripts: `pnpm dev`, `pnpm build` (runs `prisma generate` first),
+`pnpm start`, `pnpm lint`.
+
+## Layout
 
 ```
-src/features/planner/
-  types.ts        domain types (Group, Course, ScheduleItem, PlannerEvent, PlannerTask, ...)
-  constants.ts     seed/default data, hue swatches, weekday/month labels
-  utils.ts          pure date/color/lookup helpers
-  schemas.ts         zod schemas for the 4 modal forms
-  styles.ts            shared inline-style tokens (colors, buttons, inputs)
-  store.ts              zustand store: domain data + navigation/modal UI state
-  useToday.ts             today, frozen at mount
+src/
+  app/
+    page.tsx              renders PlannerApp (client-only)
+    login/                password form
+    api/                  route handlers, one folder per resource
+  middleware.ts           session check for every page and API route
   components/
-    PlannerApp.tsx, Sidebar.tsx, TopBar.tsx
-    views/       MonthView, WeekView, PlanningView, CoursesListView, CourseView, SettingsView
-    modals/      EventModal, TaskModal, ScheduleModal, CourseModal
+    Providers.tsx         React Query provider
+    ui/                   UI primitives (Button, Modal, TextField, TaskCard, ...)
+                          plus tokens.ts, palette.ts and styles.css
+  lib/
+    prisma.ts             Prisma client (pg adapter)
+    auth.ts               password check + signed session cookie
+    queryClient.ts
+    api/                  client hooks and server helpers per resource
+  features/planner/
+    store.ts              zustand: navigation and modal state only
+    useUrlState.ts        mirrors navigation into the query string
+    useShortcuts.ts       keyboard shortcuts
+    schemas.ts            zod schemas for the modal forms
+    utils.ts, constants.ts
+    components/
+      PlannerApp, Sidebar, TopBar, BacklogTray, dialogs
+      views/              MonthView, WeekView (+ week/), PlanningView,
+                          CategoriesListView, CategoryView, SettingsView
+      modals/             EventModal, TaskModal, ScheduleModal, CategoryModal
+    dnd/                  drag & drop across all views (dnd-kit)
+    toast/                toasts
+prisma/
+  schema.prisma, migrations/
+docs/
+  model.md                data model and the decisions behind it
 ```
 
-## Persistence: localStorage, not a database
+## Data
 
-All planner data (groups, courses, schedule, events, tasks, completion state,
-time divisions) lives in a Zustand store persisted to the browser's
-`localStorage` (see `src/features/planner/store.ts`, key `planner-storage`).
-There is no backend call on the golden path — the app works fully offline.
+Everything lives in Postgres: `Group`, `Category`, `ScheduleItem`,
+`ScheduleException`, `PlannerEvent`, `PlannerTask`, `TimeDivision`. See
+[`docs/model.md`](docs/model.md) for what each field means and why it is
+shaped the way it is.
 
-## Library decisions
+A few conventions run through the whole stack:
 
-The project was refactored from an earlier FullCalendar + Prisma skeleton into
-the current custom UI. Some previously-installed dependencies are no longer
-wired into the app; they're kept installed (not removed) in case a future
-iteration reintroduces server-backed sync, but they're currently dead weight:
+- **Dates and times are strings on the wire.** Postgres `DATE`/`TIME` columns
+  come out of Prisma as `Date` objects; the API converts them to
+  `'YYYY-MM-DD'` / `'HH:MM'` in one place (`lib/api/serialize.ts`,
+  `lib/api/dto.ts`). `lib/api/types.ts` holds the wire shapes the app uses.
+  A `null` time means "no time".
+- **Recurring classes are computed, not stored.** A `ScheduleItem` is a
+  weekly or biweekly rule. Occurrences are expanded on the client for the
+  range being shown, and a `ScheduleException` cancels or edits a single
+  occurrence by date.
+- **Deadline events are derived from shape.** An event with an end time and
+  no start time reads as a due time, not a block.
 
-- **Prisma / `@prisma/client`** — this refactor uses
-  `localStorage` exclusively for persistence. `prisma/schema.prisma` and
-  `src/lib/prisma.ts` are untouched but unused. The old `src/app/api/events`
-  route was removed: it called `new PrismaClient()` with no datasource
-  configured, which Prisma 7 rejects at construction time, and Next.js
-  evaluates API routes during `next build`'s page-data-collection step — so
-  the dead route failed production builds outright. If server persistence is
-  added later, the `Event` Prisma model will also need reshaping to match
-  `PlannerEvent`/`PlannerTask` (courseId, y/m/d fields, event types) — it
-  currently reflects the old, discarded data model.
-- **`@tanstack/react-query`** — there's no server data fetching in this
-  client-only app, so `Providers.tsx`/`queryClient.ts` wrap the tree but have
-  nothing to do right now.
+## How the client talks to the server
 
-`@fullcalendar/*` (react, daygrid, timegrid, interaction) was removed
-outright rather than kept dead: the month and week grids are fully
-custom (a week view with an untimed/deadline strip and
-user-configurable, non-uniform time divisions, independent zoom, and
-per-occurrence schedule exceptions) which doesn't map cleanly onto
-FullCalendar's plugin model, so the calendar views were hand-built instead
-(`components/views/MonthView.tsx`, `WeekView.tsx`) and nothing in the app
-imports FullCalendar anymore.
+- `lib/api/<resource>.ts` exposes React Query hooks (`useEvents`,
+  `useCreateTask`, `useUpdateScheduleItem`, ...). Mutations update the cached
+  list optimistically and roll back on error (`lib/api/optimistic.ts`), so a
+  dragged card stays where it was dropped.
+- Route handlers in `app/api/` validate input with zod
+  (`lib/api/validators.ts`) and map Prisma errors to readable responses
+  (`lib/api/errors.ts`).
+- Zustand (`features/planner/store.ts`) holds only UI state: current view,
+  month/week offset, week zoom, selected category, and which modal is open.
+  The navigation part is mirrored into the URL in Spanish
+  (`?vista=semana&semana=1`), so back/forward and reloads work. A few UI
+  preferences (collapsed sidebar, week tray, last quick-add category) are kept in
+  `localStorage`.
 
-Actively used, and why:
+## Auth
 
-- **Zustand** — single store for both domain data and UI/navigation state
-  (current view, open modals, month/week offsets), persisted via
-  `zustand/middleware`'s `persist` (domain data only — navigation and modal
-  state are intentionally excluded so a reload never reopens a stale modal).
-- **React Hook Form + Zod** — the four entity forms (event, task, class
-  schedule, course) validate through `zodResolver` against the schemas in
-  `schemas.ts`.
-- **Tailwind CSS** — available for base styling; the planner UI itself
-  uses `oklch()`-based styles directly (course colors
-  are computed per-hue at runtime, which isn't expressible as static
-  Tailwind utility classes).
+Single user, no accounts. `POST /api/login` checks the password against
+`APP_PASSWORD` and sets an HMAC-signed, httpOnly cookie that lasts 30 days.
+`middleware.ts` verifies it on every request: pages redirect to `/login`,
+API routes answer `401`. If `APP_PASSWORD` or `AUTH_SECRET` is missing, the
+app stays locked.
 
-## Learn More
+## Styling
 
-To learn more about Next.js, take a look at the following resources:
+`src/components/ui/styles.css` defines the tokens (`--pl-*` custom
+properties) and the styles for the UI primitives. Feature components use CSS
+Modules next to each file. Category colors are generated from a hue angle at
+runtime (`tokens.ts`, `palette.ts`). The font is Archivo, loaded through
+`next/font` in `app/layout.tsx`; its width axis is what makes headings and
+numbers condensed.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Main libraries
+
+- **Next.js 16 / React 19**, with the React Compiler enabled.
+- **Prisma 7** with `@prisma/adapter-pg`.
+- **@tanstack/react-query** for server state.
+- **Zustand** for UI state.
+- **React Hook Form + Zod** for the forms. Zod also validates the API.
+- **dnd-kit** for drag & drop in the month, week and planning views.
+
+The calendar views are built by hand. FullCalendar was used early on and
+removed, because the week view (untimed/deadline strip, custom
+non-uniform time divisions, zoom, per-occurrence exceptions) didn't fit
+its plugin model.
