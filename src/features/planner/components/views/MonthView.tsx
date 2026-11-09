@@ -267,7 +267,7 @@ function EventChip({ entry, date, inPopover, actions, hintId }: ChipProps<EventE
             onClick={() => actions.openEvent(ev.id)}
             onDoubleClick={(e) => e.stopPropagation()}
         >
-            {entry.kind === 'timed' && <span className={s.dot} aria-hidden="true" />}
+            {entry.kind !== 'deadline' && <span className={s.dot} aria-hidden="true" />}
             {entry.kind === 'deadline' && <span className={s.diamond} aria-hidden="true" />}
             {entry.time && <span className={s.chipTime}>{entry.time}</span>}
             <span className={s.chipTitle}>{ev.title}</span>

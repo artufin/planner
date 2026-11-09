@@ -1,8 +1,6 @@
 /* Month view — the month as a notebook page.
    In-month days are white sheet, days from the neighbouring months recede to
-   the page colour. Week rows are separated by the notebook's ruled lines and
-   every cell carries faint writing lines at the chip pitch, so events read as
-   entries written on the page. */
+   the page colour. Week rows are separated by the notebook's ruled lines. */
 
 .root {
     --chip-h: 18px;
@@ -96,7 +94,7 @@
 }
 
 .dayNum {
-    font-size: var(--pl-text-3xl);
+    font-size: var(--pl-text-2xl);
     color: var(--pl-color-ink);
     padding-top: 2px;
 }
@@ -140,7 +138,6 @@
     visibility: hidden;
 }
 
-/* Writing lines: one ruled line per chip row, sitting in the gap under it. */
 .chips {
     display: flex;
     flex-direction: column;
@@ -148,15 +145,6 @@
     flex: 1;
     min-height: 0;
     overflow: hidden;
-    background-image: repeating-linear-gradient(
-        to bottom,
-        transparent 0 calc(var(--chip-h) + var(--chip-gap) - 1px),
-        var(--pl-color-grid) calc(var(--chip-h) + var(--chip-gap) - 1px) calc(var(--chip-h) + var(--chip-gap))
-    );
-}
-
-.cellOut .chips {
-    background-image: none;
 }
 
 /* ---- chips --------------------------------------------------------------- */
@@ -211,20 +199,8 @@
     color: var(--pl-cat-text);
 }
 
-/* Untimed: a band in the category colour, like an all-day entry. */
-.chipUntimed {
-    padding-left: 7px;
-    background: var(--pl-cat-soft);
-    box-shadow: inset 3px 0 0 var(--pl-cat-solid);
-    color: var(--pl-cat-text);
-    font-weight: var(--pl-weight-semibold);
-}
-
-.chipUntimed:hover {
-    background: color-mix(in oklch, var(--pl-cat-soft), var(--pl-cat-solid) 14%);
-}
-
-/* Timed: written on the line — a category dot, the time, the title. */
+/* Timed and untimed share one look: a category dot, the time (when there is
+   one), the title. An untimed event is simply the same line without a time. */
 .dot {
     flex: none;
     width: 7px;
@@ -233,7 +209,8 @@
     background: var(--pl-cat-solid);
 }
 
-.chipTimed:hover {
+.chipTimed:hover,
+.chipUntimed:hover {
     background: var(--pl-cat-soft);
 }
 

@@ -4,6 +4,7 @@
 .page {
     padding: var(--pl-space-5xl) var(--pl-space-5xl) 56px;
     max-width: 1040px;
+    margin-inline: auto;
     container-type: inline-size;
 }
 

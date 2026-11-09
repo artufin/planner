@@ -7,17 +7,17 @@
     container-type: inline-size;
 }
 
+/* Content column: at most 1040px wide, centred, never closer to the edges than the gutter. */
 .page > .section,
 .page > .columns {
-    max-width: 1040px;
-    margin: var(--pl-space-5xl) var(--pl-space-5xl) 0;
+    margin: var(--pl-space-5xl) max(var(--pl-space-5xl), calc((100% - 1040px) / 2)) 0;
 }
 
 /* ---- header ------------------------------------------------------------- */
 
 .header {
     position: relative;
-    padding: 28px var(--pl-space-5xl) var(--pl-space-4xl) 48px;
+    padding: 28px var(--pl-space-5xl) var(--pl-space-4xl) max(48px, calc((100% - 1040px) / 2));
     background: var(--pl-cat-soft);
     border-bottom: 1px solid color-mix(in oklch, var(--pl-cat-solid) 30%, transparent);
 }
