@@ -25,9 +25,15 @@ export type UpdateEventInput = { id: string } & Partial<CreateEventInput>;
 
 export function useUpdateEvent() {
     const queryClient = useQueryClient();
+    const optimistic = optimisticList<PlannerEvent, UpdateEventInput>(queryClient, queryKeys.events, patchById);
     return useMutation({
         mutationFn: ({ id, ...patch }: UpdateEventInput) => http.patch<PlannerEvent>(`/api/events/${id}`, patch),
-        ...optimisticList<PlannerEvent, UpdateEventInput>(queryClient, queryKeys.events, patchById),
+        ...optimistic,
+        onSettled: () => {
+            optimistic.onSettled();
+            // Moving an event can move the deadline of its linked tasks.
+            queryClient.invalidateQueries({ queryKey: queryKeys.tasks });
+        },
     });
 }
 

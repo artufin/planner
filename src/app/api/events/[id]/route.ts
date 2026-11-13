@@ -24,17 +24,29 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (!parsed.success) return zodErrorResponse(parsed.error);
     const v = parsed.data;
     try {
-        const event = await prisma.plannerEvent.update({
-            where: { id },
-            data: {
-                categoryId: v.categoryId,
-                title: v.title,
-                location: v.location,
-                startDate: v.startDate !== undefined ? fromDateOnly(v.startDate) : undefined,
-                endDate: v.endDate !== undefined ? fromDateOnly(v.endDate) : undefined,
-                start: v.start !== undefined ? fromTimeOnlyNullable(v.start) : undefined,
-                end: v.end !== undefined ? fromTimeOnlyNullable(v.end) : undefined,
-            },
+        const event = await prisma.$transaction(async (tx) => {
+            const previous = v.startDate !== undefined ? await tx.plannerEvent.findUnique({ where: { id }, select: { startDate: true } }) : null;
+            const updated = await tx.plannerEvent.update({
+                where: { id },
+                data: {
+                    categoryId: v.categoryId,
+                    title: v.title,
+                    location: v.location,
+                    startDate: v.startDate !== undefined ? fromDateOnly(v.startDate) : undefined,
+                    endDate: v.endDate !== undefined ? fromDateOnly(v.endDate) : undefined,
+                    start: v.start !== undefined ? fromTimeOnlyNullable(v.start) : undefined,
+                    end: v.end !== undefined ? fromTimeOnlyNullable(v.end) : undefined,
+                },
+            });
+            // A linked task's deadline follows the event's date. Only tasks still sitting on the old date move,
+            // so a deadline edited by hand on the task is left alone.
+            if (previous && previous.startDate.getTime() !== updated.startDate.getTime()) {
+                await tx.plannerTask.updateMany({
+                    where: { eventId: id, deadline: previous.startDate },
+                    data: { deadline: updated.startDate },
+                });
+            }
+            return updated;
         });
         return NextResponse.json(plannerEventDto(event));
     } catch (error) {
